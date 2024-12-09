@@ -19,12 +19,14 @@ export interface MaterialSettings {
   textureRepeat: number;
   metalness: number;
   roughness: number;
+  envMapIntensity: number;
 }
 
 export const DEFAULT_MATERIAL_SETTINGS: MaterialSettings = {
   textureRepeat: 0.005,
   metalness: 1,
   roughness: 0,
+  envMapIntensity: 1.0,
 };
 
 interface MaterialState {

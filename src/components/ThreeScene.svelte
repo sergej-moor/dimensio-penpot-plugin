@@ -16,6 +16,7 @@
     updateMaterialSettings,
     type MaterialSettings,
   } from '../stores/materials';
+  import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
 
   // Create a reference to this component instance
   let componentInstance: ThreeScene;
@@ -232,6 +233,7 @@
       displacementScale: 0,
       metalness: settings.metalness,
       roughness: settings.roughness,
+      envMapIntensity: 1.0,
     });
 
     // Apply texture repeat settings to all textures
@@ -250,7 +252,38 @@
     }
   }
 
-  onMount(() => {
+  async function loadHDREnvironment(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const loader = new RGBELoader();
+      loader.setPath('/');
+
+      loader.load(
+        './sky.hdr',
+        (texture) => {
+          texture.mapping = THREE.EquirectangularReflectionMapping;
+
+          scene.environment = texture;
+
+          // Update all existing materials to use environment mapping
+          scene.traverse((object) => {
+            if (object instanceof THREE.Mesh) {
+              const material = object.material as THREE.MeshStandardMaterial;
+              if (material.isMeshStandardMaterial) {
+                material.envMap = texture;
+                material.needsUpdate = true;
+              }
+            }
+          });
+
+          resolve();
+        },
+        undefined,
+        reject
+      );
+    });
+  }
+
+  onMount(async () => {
     setThreeSceneComponent({
       captureScene,
       handleMaterialChange,
@@ -328,6 +361,13 @@
     };
 
     window.addEventListener('resize', handleResize);
+
+    // Load HDR environment
+    try {
+      await loadHDREnvironment();
+    } catch (error) {
+      console.error('Failed to load HDR environment:', error);
+    }
 
     return () => {
       window.removeEventListener('resize', handleResize);

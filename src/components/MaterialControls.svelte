@@ -214,5 +214,24 @@
         class="flex-1 ml-2"
       />
     </label>
+
+    <label class="text-sm flex justify-between">
+      Environment Intensity: {$materialStore.settings.envMapIntensity.toFixed(
+        2
+      )}
+      <input
+        type="range"
+        min="0"
+        max="2"
+        step="0.01"
+        value={$materialStore.settings.envMapIntensity}
+        on:input={(e) =>
+          handleSettingChange(
+            'envMapIntensity',
+            parseFloat(e.currentTarget.value)
+          )}
+        class="flex-1 ml-2"
+      />
+    </label>
   </div>
 </div>
