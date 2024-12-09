@@ -122,10 +122,10 @@
 
       const meshes: THREE.Mesh[] = [];
 
-      shapes.forEach((shape) => {
+      shapes.forEach(({ shape, color }) => {
         const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
         const material = new THREE.MeshStandardMaterial({
-          color: 0x000000,
+          color: color,
           flatShading: true,
           side: THREE.DoubleSide,
           roughness: 0.7,
