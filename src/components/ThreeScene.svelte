@@ -5,6 +5,13 @@
   import { svgStore } from '../stores/svg';
   import { parseSVGPaths } from '../utils/svgParser';
   import type { CaptureOptions } from '../types';
+  import {
+    setMaterialChangeHandler,
+    setThreeSceneComponent,
+  } from '../stores/threeScene';
+
+  // Create a reference to this component instance
+  let componentInstance: ThreeScene;
 
   let container: HTMLDivElement;
   let scene: THREE.Scene;
@@ -13,12 +20,15 @@
   let controls: OrbitControls;
   let animationFrameId: number;
   let currentMesh: THREE.Mesh | null = null;
+  let currentMaterial: THREE.MeshStandardMaterial;
 
   function createDefaultCube() {
     const geometry = new THREE.BoxGeometry();
-    const material = new THREE.MeshPhongMaterial({
+    const material = new THREE.MeshStandardMaterial({
       color: 0x00ff00,
       flatShading: true,
+      roughness: 0.7,
+      metalness: 0.3,
     });
     const cube = new THREE.Mesh(geometry, material);
     scene.add(cube);
@@ -29,13 +39,22 @@
   function createSVGMesh(svgContent: string) {
     // Remove existing mesh if any
     if (currentMesh) {
+      console.log('Removing existing mesh');
       scene.remove(currentMesh);
-      currentMesh.geometry.dispose();
-      currentMesh.material.dispose();
+      if ('geometry' in currentMesh) {
+        currentMesh.geometry.dispose();
+      }
+      if ('material' in currentMesh) {
+        (Array.isArray(currentMesh.material)
+          ? currentMesh.material
+          : [currentMesh.material]
+        ).forEach((material) => material.dispose());
+      }
     }
 
     try {
       const { shapes, bounds } = parseSVGPaths(svgContent);
+      console.log('Parsed SVG:', { shapes, bounds });
 
       if (shapes.length === 0) {
         console.warn('No valid paths found in SVG');
@@ -57,9 +76,12 @@
 
       shapes.forEach((shape, index) => {
         const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-        const material = new THREE.MeshPhongMaterial({
+        const material = new THREE.MeshStandardMaterial({
           color: new THREE.Color().setHSL(index / shapes.length, 0.7, 0.5),
           flatShading: true,
+          side: THREE.DoubleSide,
+          roughness: 0.7,
+          metalness: 0.3,
         });
         const mesh = new THREE.Mesh(geometry, material);
         group.add(mesh);
@@ -70,12 +92,22 @@
       group.scale.set(scale, -scale, scale); // Flip Y to match SVG coordinates
       group.position.set(-bounds.centerX * scale, bounds.centerY * scale, 0);
 
+      // Center camera on the group
+      const box = new THREE.Box3().setFromObject(group);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const fov = camera.fov * (Math.PI / 180);
+      const cameraDistance = Math.abs(maxDim / Math.sin(fov / 2) / 2);
+
+      camera.position.set(0, 0, cameraDistance);
+      camera.lookAt(center);
+      controls.target.copy(center);
+      controls.update();
+
       scene.add(group);
       currentMesh = group as unknown as THREE.Mesh;
-
-      // Reset camera position
-      camera.position.set(0, 0, 10);
-      controls.reset();
+      console.log('Added SVG mesh to scene:', group);
 
       return group;
     } catch (error) {
@@ -84,98 +116,7 @@
     }
   }
 
-  onMount(() => {
-    // Scene setup
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(
-      75,
-      container.clientWidth / container.clientHeight,
-      0.1,
-      1000
-    );
-
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    container.appendChild(renderer.domElement);
-
-    // Initial cube
-    const cube = createDefaultCube();
-
-    // Add lights
-    const ambientLight = new THREE.AmbientLight(0x404040);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(1, 1, 1);
-    scene.add(directionalLight);
-
-    // Camera position
-    camera.position.z = 5;
-
-    // Add OrbitControls
-    controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-
-    // Animation loop
-    function animate() {
-      animationFrameId = requestAnimationFrame(animate);
-
-      if (currentMesh && !controls.enableDamping) {
-        currentMesh.rotation.x += 0.01;
-        currentMesh.rotation.y += 0.01;
-      }
-
-      controls.update();
-      renderer.render(scene, camera);
-    }
-
-    animate();
-
-    // Handle resize
-    const handleResize = () => {
-      camera.aspect = container.clientWidth / container.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(container.clientWidth, container.clientHeight);
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  });
-
-  // Subscribe to SVG store changes
-  $: if ($svgStore.content && scene) {
-    createSVGMesh($svgStore.content);
-  }
-
-  onDestroy(() => {
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId);
-    }
-    if (renderer) {
-      renderer.dispose();
-    }
-    if (controls) {
-      controls.dispose();
-    }
-    if (currentMesh) {
-      scene?.remove(currentMesh);
-      if ('geometry' in currentMesh) {
-        currentMesh.geometry.dispose();
-      }
-      if ('material' in currentMesh) {
-        (Array.isArray(currentMesh.material)
-          ? currentMesh.material
-          : [currentMesh.material]
-        ).forEach((material) => material.dispose());
-      }
-    }
-  });
-
+  // Export these methods so they can be called from outside
   export function captureScene(
     options: CaptureOptions = {}
   ): Promise<Uint8Array> {
@@ -267,9 +208,152 @@
       }
     });
   }
+
+  export function handleMaterialChange(
+    textures: Record<string, THREE.Texture>
+  ): void {
+    if (!currentMesh) return;
+
+    const material = new THREE.MeshStandardMaterial({
+      map: textures.diffuse,
+      normalMap: textures.normal,
+      roughnessMap: textures.roughness,
+      metalnessMap: textures.metalness,
+      aoMap: textures.ao,
+      displacementMap: textures.height,
+      displacementScale: 0.1,
+    });
+
+    if (currentMesh instanceof THREE.Mesh) {
+      currentMesh.material = material;
+    } else if ('children' in currentMesh) {
+      currentMesh.children.forEach((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.material = material.clone();
+        }
+      });
+    }
+  }
+
+  onMount(() => {
+    setThreeSceneComponent({
+      captureScene,
+      handleMaterialChange,
+    });
+    setMaterialChangeHandler(handleMaterialChange);
+    console.log('ThreeScene mounting, container:', container);
+    // Scene setup
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf0f0f0); // Light gray background
+    console.log('Scene created');
+    camera = new THREE.PerspectiveCamera(
+      75,
+      container.clientWidth / container.clientHeight,
+      0.1,
+      1000
+    );
+    console.log('Camera created with dimensions:', {
+      width: container.clientWidth,
+      height: container.clientHeight,
+    });
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1;
+    container.appendChild(renderer.domElement);
+    console.log('Renderer created and appended');
+
+    // Initial cube
+    const cube = createDefaultCube();
+    console.log('Default cube created');
+
+    // Add lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+
+    // Add environment light for better PBR materials
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
+    scene.add(hemiLight);
+
+    // Camera position
+    camera.position.z = 5;
+
+    // Add OrbitControls
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    // Animation loop
+    function animate() {
+      animationFrameId = requestAnimationFrame(animate);
+
+      if (currentMesh && !controls.enableDamping) {
+        currentMesh.rotation.x += 0.01;
+        currentMesh.rotation.y += 0.01;
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // Handle resize
+    const handleResize = () => {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  });
+
+  // Subscribe to SVG store changes
+  $: if ($svgStore.content && scene) {
+    console.log('Creating SVG mesh from content:', $svgStore.content);
+    createSVGMesh($svgStore.content);
+  }
+
+  onDestroy(() => {
+    setThreeSceneComponent(undefined);
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+    }
+    if (renderer) {
+      renderer.dispose();
+    }
+    if (controls) {
+      controls.dispose();
+    }
+    if (currentMesh) {
+      scene?.remove(currentMesh);
+      if ('geometry' in currentMesh) {
+        currentMesh.geometry.dispose();
+      }
+      if ('material' in currentMesh) {
+        (Array.isArray(currentMesh.material)
+          ? currentMesh.material
+          : [currentMesh.material]
+        ).forEach((material) => material.dispose());
+      }
+    }
+  });
 </script>
 
-<div bind:this={container} class="w-full h-full"></div>
+<div class="relative">
+  <div bind:this={container} class="w-full h-full min-h-[300px]" />
+</div>
 
 <style>
   div {

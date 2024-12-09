@@ -4,6 +4,7 @@
   import { tooltip } from '../actions/tooltip';
   import { svgStore, setSVGContent, setError } from '../stores/svg';
   import ThreeScene from './ThreeScene.svelte';
+  import MaterialControls from './MaterialControls.svelte';
   import { threeSceneStore } from '../stores/threeScene';
 
   let currentValue = $selection.pixelSize;
@@ -101,12 +102,15 @@
     }
   }
 
+  $: console.log('ThreeScene store state:', $threeSceneStore);
+
   async function handleExportToPenpot(): Promise<void> {
-    if (isExporting || !$threeSceneStore) return;
+    console.log('Export clicked, component:', $threeSceneStore.component);
+    if (isExporting || !$threeSceneStore.component) return;
 
     try {
       isExporting = true;
-      const pngData = await $threeSceneStore.captureScene({
+      const pngData = await $threeSceneStore.component.captureScene({
         width: 2000,
         height: 2000,
       });
@@ -226,7 +230,7 @@
 
     <button
       on:click={handleExportToPenpot}
-      disabled={!$threeSceneStore || isExporting}
+      disabled={!$threeSceneStore.component || isExporting}
       data-appearance="secondary"
       class="flex-1 flex justify-center gap-2 items-center"
       use:tooltip={{
@@ -249,5 +253,9 @@
       class="hidden"
       on:change={handleSVGUpload}
     />
+  </div>
+
+  <div class="border-t pt-4 mt-4">
+    <MaterialControls />
   </div>
 </div>

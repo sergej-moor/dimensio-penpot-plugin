@@ -11,9 +11,11 @@ interface SVGParseResult {
 }
 
 export function parseSVGPaths(svgString: string): SVGParseResult {
+  console.log('Parsing SVG string:', svgString);
   const parser = new DOMParser();
   const doc = parser.parseFromString(svgString, 'image/svg+xml');
   const paths = Array.from(doc.querySelectorAll('path'));
+  console.log('Found paths:', paths);
   const shapes: THREE.Shape[] = [];
 
   // Get SVG viewBox or dimensions
@@ -32,6 +34,7 @@ export function parseSVGPaths(svgString: string): SVGParseResult {
 
   paths.forEach((path) => {
     const d = path.getAttribute('d');
+    console.log('Processing path:', d);
     if (!d) return;
 
     try {
