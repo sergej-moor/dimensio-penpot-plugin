@@ -20,6 +20,7 @@
     Palette,
   } from 'lucide-svelte';
   import PostProcessingControls from './PostProcessingControls.svelte';
+  import { onMount } from 'svelte';
 
   let currentValue = $selection.pixelSize;
   let displayValue = currentValue;
@@ -28,6 +29,17 @@
   let previousRealtimeState = false;
   let isExporting = false;
 
+  onMount(async () => {
+    try {
+      const response = await fetch('./placeholder.svg');
+      const text = await response.text();
+      setSVGContent(text);
+    } catch (error) {
+      console.error('Error loading default SVG:', error);
+      setError('Failed to load default SVG');
+    }
+  });
+
   const tabs = [
     {
       id: 'file',
@@ -35,6 +47,15 @@
       icon: Upload,
       component: undefined,
       tooltip: 'File Operations',
+    },
+
+    {
+      id: 'shapes',
+      label: 'Shapes',
+      icon: Palette,
+      component: ShapeControls,
+      tooltip: 'Shape Controls',
+      requiresSVG: true,
     },
     {
       id: 'object',
@@ -45,19 +66,20 @@
       requiresSVG: true,
     },
     {
-      id: 'shapes',
-      label: 'Shapes',
-      icon: Palette,
-      component: ShapeControls,
-      tooltip: 'Shape Controls',
-      requiresSVG: true,
-    },
-    {
       id: 'material',
       label: 'Material',
       icon: Paintbrush,
       component: MaterialControls,
       tooltip: 'Material Settings',
+      requiresSVG: true,
+    },
+
+    {
+      id: 'camera',
+      label: 'Camera',
+      icon: Aperture,
+      component: CameraControls,
+      tooltip: 'Camera Controls',
       requiresSVG: true,
     },
     {
@@ -68,14 +90,7 @@
       tooltip: 'Post Processing Effects',
       requiresSVG: true,
     },
-    {
-      id: 'camera',
-      label: 'Camera',
-      icon: Aperture,
-      component: CameraControls,
-      tooltip: 'Camera Controls',
-      requiresSVG: true,
-    },
+
     {
       id: 'exports',
       label: 'Exports',
