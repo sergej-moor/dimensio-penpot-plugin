@@ -8,7 +8,7 @@
   import { threeSceneStore } from '../stores/threeScene';
   import ObjectControls from './ObjectControls.svelte';
   import CameraControls from './CameraControls.svelte';
-  import ColorControls from './ColorControls.svelte';
+  import ShapeControls from './ShapeControls.svelte';
   import Tabs from './Tabs.svelte';
 
   let currentValue = $selection.pixelSize;
@@ -20,10 +20,10 @@
 
   const tabs = [
     { id: 'file', label: 'File' },
-    { id: 'material', label: 'Material' },
-    { id: 'object', label: 'Object' },
-    { id: 'camera', label: 'Camera' },
-    { id: 'color', label: 'Color' },
+    { id: 'object', label: 'Object', component: ObjectControls },
+    { id: 'shapes', label: 'Shapes', component: ShapeControls },
+    { id: 'material', label: 'Material', component: MaterialControls },
+    { id: 'camera', label: 'Camera', component: CameraControls },
   ];
 
   let activeTab = 'file';
@@ -200,8 +200,8 @@
       <ObjectControls />
     {:else if activeTab === 'camera'}
       <CameraControls />
-    {:else if activeTab === 'color'}
-      <ColorControls />
+    {:else if activeTab === 'shapes'}
+      <ShapeControls />
     {/if}
   </Tabs>
 </div>

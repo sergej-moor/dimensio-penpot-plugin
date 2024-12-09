@@ -25,6 +25,7 @@
     setDefaultCameraPosition,
   } from '../stores/camera';
   import { colorStore, setColorGroups } from '../stores/color';
+  import { shapeStore, setShapeGroups } from '../stores/shapes';
 
   // Create a reference to this component instance
   let componentInstance: ThreeScene;
@@ -77,9 +78,10 @@
       color: data.color.clone(),
       defaultColor: data.color.clone(),
       meshIndices: data.indices,
+      depth: 1, // Default depth
     }));
 
-    setColorGroups(groups);
+    setShapeGroups(groups);
   }
 
   function createSVGMesh(svgContent: string, preserveCamera = false) {
@@ -468,14 +470,16 @@
     controls.update();
   }
 
-  // Add subscription to color store changes
-  $: if ($colorStore.groups && currentMesh) {
-    // Update mesh colors when color groups change
-    $colorStore.groups.forEach((group) => {
+  // Update subscription to shape store changes
+  $: if ($shapeStore.groups && currentMesh) {
+    // Update mesh colors and depths when shape groups change
+    $shapeStore.groups.forEach((group) => {
       group.meshIndices.forEach((index) => {
         const mesh = (currentMesh as THREE.Group).children[index] as THREE.Mesh;
         if (mesh && mesh.material instanceof THREE.MeshStandardMaterial) {
           mesh.material.color.copy(group.color);
+          // Update the mesh's scale in Z axis for depth
+          mesh.scale.z = group.depth;
         }
       });
     });
