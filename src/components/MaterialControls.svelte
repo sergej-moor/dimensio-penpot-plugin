@@ -7,14 +7,11 @@
     type Material,
     updateMaterialSettings,
     type MaterialSettings,
+    setCurrentMaterial,
   } from '../stores/materials';
   import { tooltip } from '../actions/tooltip';
   import LoadingSpinner from './LoadingSpinner.svelte';
   import { threeSceneStore } from '../stores/threeScene';
-
-  export let onMaterialChange:
-    | ((textures: Record<string, THREE.Texture>) => void)
-    | undefined;
 
   let selectedMaterial: Material | null = null;
   let isLoading = false;
@@ -115,59 +112,6 @@
   });
 </script>
 
-<div class="flex flex-col gap-4">
-  <h3 class="text-sm font-medium">Materials</h3>
-
-  {#if $materialStore.isLoading}
-    <div class="flex justify-center">
-      <LoadingSpinner />
-    </div>
-  {:else if $materialStore.error}
-    <p class="text-sm text-red-600">{$materialStore.error}</p>
-  {:else}
-    <div class="grid grid-cols-4 gap-1">
-      {#each $materialStore.materials as material}
-        <button
-          class="p-1 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          class:bg-blue-50={selectedMaterial?.name === material.name}
-          disabled={isLoading}
-          on:click={() => handleMaterialSelect(material)}
-          use:tooltip={{
-            text: material.name,
-            position: 'top',
-          }}
-        >
-          {#if material.maps.preview}
-            <img
-              src={material.maps.preview}
-              alt={material.name}
-              class="w-12 h-12 object-cover rounded"
-            />
-          {:else if material.maps.diffuse}
-            <img
-              src={material.maps.diffuse}
-              alt={material.name}
-              class="w-12 h-12 object-cover rounded"
-            />
-          {:else}
-            <div
-              class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-xs"
-            >
-              {material.name}
-            </div>
-          {/if}
-        </button>
-      {/each}
-    </div>
-
-    {#if isLoading}
-      <div class="flex justify-center">
-        <LoadingSpinner />
-      </div>
-    {/if}
-  {/if}
-</div>
-
 <div class="mt-4 flex flex-col gap-4">
   <div class="flex flex-col gap-2">
     <label class="text-sm flex justify-between">
@@ -234,4 +178,57 @@
       />
     </label>
   </div>
+</div>
+
+<div class="flex flex-col gap-4">
+  <h3 class="mt-2 font-medium">Materials</h3>
+
+  {#if $materialStore.isLoading}
+    <div class="flex justify-center">
+      <LoadingSpinner />
+    </div>
+  {:else if $materialStore.error}
+    <p class="text-sm text-red-600">{$materialStore.error}</p>
+  {:else}
+    <div class="flex flex-wrap gap-2">
+      {#each $materialStore.materials as material}
+        <button
+          class="p-0 w-12 h-12 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          class:bg-blue-50={selectedMaterial?.name === material.name}
+          disabled={isLoading}
+          on:click={() => handleMaterialSelect(material)}
+          use:tooltip={{
+            text: material.name,
+            position: 'top',
+          }}
+        >
+          {#if material.maps.preview}
+            <img
+              src={material.maps.preview}
+              alt={material.name}
+              class="w-full h-full rounded-full object-cover"
+            />
+          {:else if material.maps.diffuse}
+            <img
+              src={material.maps.diffuse}
+              alt={material.name}
+              class="w-full h-full rounded-full object-cover"
+            />
+          {:else}
+            <div
+              class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-xs"
+            >
+              {material.name}
+            </div>
+          {/if}
+        </button>
+      {/each}
+    </div>
+
+    {#if isLoading}
+      <div class="flex justify-center">
+        <LoadingSpinner />
+      </div>
+    {/if}
+  {/if}
 </div>
