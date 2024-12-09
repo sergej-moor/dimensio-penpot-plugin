@@ -71,3 +71,8 @@ export type PluginMessage =
   | { type: 'fill-upload-complete' }
   | { type: 'delete-top-layer' }
   | { type: 'export-error'; error: string };
+
+export interface CaptureOptions {
+  width?: number;
+  height?: number;
+}

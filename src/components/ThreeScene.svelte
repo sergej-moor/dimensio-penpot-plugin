@@ -4,6 +4,7 @@
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
   import { svgStore } from '../stores/svg';
   import { parseSVGPaths } from '../utils/svgParser';
+  import type { CaptureOptions } from '../types';
 
   let container: HTMLDivElement;
   let scene: THREE.Scene;
@@ -174,6 +175,98 @@
       }
     }
   });
+
+  export function captureScene(
+    options: CaptureOptions = {}
+  ): Promise<Uint8Array> {
+    return new Promise((resolve, reject) => {
+      try {
+        // Create offscreen renderer with enhanced settings
+        const offscreenRenderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+          powerPreference: 'high-performance',
+        });
+
+        const renderWidth = options.width || 2000;
+        const renderHeight = options.height || 2000;
+        offscreenRenderer.setSize(renderWidth, renderHeight);
+        offscreenRenderer.setPixelRatio(2); // Increase pixel ratio for sharper render
+
+        // Clone the scene and camera for high-res render
+        const offscreenScene = scene.clone();
+        const offscreenCamera = camera.clone();
+
+        // Important: Set background to null for transparency
+        offscreenScene.background = null;
+
+        // Adjust camera for new aspect ratio
+        offscreenCamera.aspect = renderWidth / renderHeight;
+        offscreenCamera.updateProjectionMatrix();
+
+        // Render high-res version
+        offscreenRenderer.render(offscreenScene, offscreenCamera);
+
+        // Get the canvas and convert to PNG
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+
+        // Create an image from the renderer
+        const img = new Image();
+        img.src = offscreenRenderer.domElement.toDataURL('image/png');
+
+        img.onload = () => {
+          // Set canvas size
+          canvas.width = img.width;
+          canvas.height = img.height;
+
+          // Draw with transparent background
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+
+          // Convert to blob
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              reject(new Error('Failed to create PNG blob'));
+              return;
+            }
+
+            // Convert blob to Uint8Array
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              if (!reader.result) {
+                reject(new Error('Failed to read PNG data'));
+                return;
+              }
+              const arrayBuffer = reader.result as ArrayBuffer;
+              resolve(new Uint8Array(arrayBuffer));
+            };
+            reader.readAsArrayBuffer(blob);
+          }, 'image/png');
+
+          // Clean up
+          offscreenRenderer.dispose();
+          offscreenScene.traverse((object) => {
+            if ('geometry' in object) {
+              (object as THREE.Mesh).geometry?.dispose();
+            }
+            if ('material' in object) {
+              const material = (object as THREE.Mesh)
+                .material as THREE.Material;
+              material.dispose();
+            }
+          });
+        };
+
+        img.onerror = () => {
+          offscreenRenderer.dispose();
+          reject(new Error('Failed to create image from render'));
+        };
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
 </script>
 
 <div bind:this={container} class="w-full h-full"></div>

@@ -6,6 +6,7 @@
   import LoadingSpinner from './LoadingSpinner.svelte';
   import { svgStore } from '../stores/svg';
   import ThreeScene from './ThreeScene.svelte';
+  import { threeSceneStore } from '../stores/threeScene';
 
   let previewUrl: string | undefined;
 
@@ -41,7 +42,7 @@
     {#if $svgStore.content || $svgStore.error}
       <!-- Show Three.js scene when SVG is loaded -->
       <div class="w-full h-full">
-        <ThreeScene />
+        <ThreeScene bind:this={$threeSceneStore} />
       </div>
       {#if $svgStore.error}
         <div class="flex items-center justify-center h-full p-4">
@@ -75,7 +76,7 @@
     {:else}
       <!-- Show Three.js scene when no other content is displayed -->
       <div class="w-full h-full">
-        <ThreeScene />
+        <ThreeScene bind:this={$threeSceneStore} />
       </div>
     {/if}
   </div>

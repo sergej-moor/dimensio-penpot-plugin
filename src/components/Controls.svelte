@@ -3,12 +3,15 @@
   import { CONSTANTS } from '../constants';
   import { tooltip } from '../actions/tooltip';
   import { svgStore, setSVGContent, setError } from '../stores/svg';
+  import ThreeScene from './ThreeScene.svelte';
+  import { threeSceneStore } from '../stores/threeScene';
 
   let currentValue = $selection.pixelSize;
   let displayValue = currentValue;
   let lastSelectionId = $selection.id;
   let realtimePreview = false;
   let previousRealtimeState = false;
+  let isExporting = false;
 
   // Just update the display value during dragging
   function handleInput(event: Event): void {
@@ -95,6 +98,36 @@
     } finally {
       // Clear the input so the same file can be uploaded again
       input.value = '';
+    }
+  }
+
+  async function handleExportToPenpot(): Promise<void> {
+    if (isExporting || !$threeSceneStore) return;
+
+    try {
+      isExporting = true;
+      const pngData = await $threeSceneStore.captureScene({
+        width: 2000,
+        height: 2000,
+      });
+
+      window.parent.postMessage(
+        {
+          type: 'update-image-fill',
+          imageData: pngData,
+          addNewLayer: true,
+          originalFill: {
+            opacity: 1,
+            color: '#000000',
+          },
+        },
+        '*'
+      );
+    } catch (error) {
+      console.error('Error exporting scene:', error);
+      setError('Failed to capture 3D scene');
+    } finally {
+      isExporting = false;
     }
   }
 </script>
@@ -189,6 +222,24 @@
       }}
     >
       Upload SVG
+    </button>
+
+    <button
+      on:click={handleExportToPenpot}
+      disabled={!$threeSceneStore || isExporting}
+      data-appearance="secondary"
+      class="flex-1 flex justify-center gap-2 items-center"
+      use:tooltip={{
+        text: 'Export the SVG as PNG and upload to Penpot',
+        position: 'bottom',
+        maxWidth: 'max-w-[300px]',
+      }}
+    >
+      {#if isExporting}
+        Exporting...
+      {:else}
+        Export to Penpot
+      {/if}
     </button>
 
     <input
