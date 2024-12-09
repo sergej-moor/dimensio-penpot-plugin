@@ -9,6 +9,7 @@
   import ObjectControls from './ObjectControls.svelte';
   import CameraControls from './CameraControls.svelte';
   import ColorControls from './ColorControls.svelte';
+  import Tabs from './Tabs.svelte';
 
   let currentValue = $selection.pixelSize;
   let displayValue = currentValue;
@@ -16,6 +17,16 @@
   let realtimePreview = false;
   let previousRealtimeState = false;
   let isExporting = false;
+
+  const tabs = [
+    { id: 'file', label: 'File' },
+    { id: 'material', label: 'Material' },
+    { id: 'object', label: 'Object' },
+    { id: 'camera', label: 'Camera' },
+    { id: 'color', label: 'Color' },
+  ];
+
+  let activeTab = 'file';
 
   // Just update the display value during dragging
   function handleInput(event: Event): void {
@@ -140,137 +151,57 @@
 </script>
 
 <div class="flex flex-col gap-4 min-w-72 w-full h-full justify-between">
-  <!--   <div class="checkbox-container flex items-center justify-end gap-2">
-    <div
-      use:tooltip={{
-        text: 'Automatically apply changes while adjusting pixel size',
-        position: 'left',
-        maxWidth: 'max-w-[200px]',
-      }}
-    >
-      <label for="realtimePreview" class="text-sm"> Realtime </label>
-      <input
-        id="realtimePreview"
-        type="checkbox"
-        bind:checked={realtimePreview}
-        disabled={isDisabled || isProcessing}
-        class="checkbox-input"
-      />
-    </div>
-  </div>
+  <Tabs {tabs} bind:activeTab>
+    {#if activeTab === 'file'}
+      <div class="flex flex-col gap-2">
+        <button
+          on:click={() => document.getElementById('svgInput').click()}
+          disabled={isProcessing}
+          data-appearance="secondary"
+          class="flex-1 flex justify-center gap-2 items-center"
+          use:tooltip={{
+            text: 'Upload an SVG file to work with',
+            position: 'bottom',
+            maxWidth: 'max-w-[300px]',
+          }}
+        >
+          Upload SVG
+        </button>
 
-  <label class="slider-row">
-    <span
-      class="body-s"
-      use:tooltip={{
-        text: 'Adjust the size of pixels in the effect',
-        maxWidth: 'max-w-[200px]',
-        position: 'right',
-      }}
-    >
-      Pixel Size:
-    </span>
-    <div class="flex items-center gap-2">
-      <div class="relative flex-1">
+        <button
+          on:click={handleExportToPenpot}
+          disabled={!$threeSceneStore.component || isExporting}
+          data-appearance="secondary"
+          class="flex-1 flex justify-center gap-2 items-center"
+          use:tooltip={{
+            text: 'Export the SVG as PNG and upload to Penpot',
+            position: 'bottom',
+            maxWidth: 'max-w-[300px]',
+          }}
+        >
+          {#if isExporting}
+            Exporting...
+          {:else}
+            Export to Penpot
+          {/if}
+        </button>
+
         <input
-          type="range"
-          min={CONSTANTS.MIN_PIXEL_SIZE}
-          max={CONSTANTS.MAX_PIXEL_SIZE}
-          value={displayValue}
-          on:input={handleInput}
-          on:change={handleChange}
-          class="w-full {isDisabled || isProcessing ? 'opacity-50' : ''}"
-          disabled={isDisabled || isProcessing}
+          id="svgInput"
+          type="file"
+          accept=".svg"
+          class="hidden"
+          on:change={handleSVGUpload}
         />
       </div>
-      <span class="text-sm w-8 text-right">{displayValue}</span>
-    </div>
-  </label> -->
-
-  <div class="flex flex-col gap-2">
-    <!--     <button
-      on:click={handleApplyEffect}
-      data-appearance="primary"
-      disabled={shouldDisableApply}
-      class:opacity-50={realtimePreview}
-      class="flex-1 flex justify-center gap-2 items-center"
-      use:tooltip={{
-        text: 'Apply a pixelated fill layer to the current shape',
-        position: 'top',
-        maxWidth: 'max-w-[300px]',
-      }}
-    >
-      {realtimePreview ? 'Auto-applying changes' : 'Apply to shape'}
-    </button>
-
-    <button
-      on:click={handleAddNewLayer}
-      disabled={isDisabled || isProcessing}
-      data-appearance="primary"
-      class="flex-1 flex justify-center gap-2 items-center"
-      use:tooltip={{
-        text: 'Create a new shape with the pixelation effect',
-        position: 'bottom',
-        maxWidth: 'max-w-[300px]',
-      }}
-    >
-      Create new Shape
-    </button> -->
-
-    <button
-      on:click={() => document.getElementById('svgInput').click()}
-      disabled={isProcessing}
-      data-appearance="secondary"
-      class="flex-1 flex justify-center gap-2 items-center"
-      use:tooltip={{
-        text: 'Upload an SVG file to work with',
-        position: 'bottom',
-        maxWidth: 'max-w-[300px]',
-      }}
-    >
-      Upload SVG
-    </button>
-
-    <button
-      on:click={handleExportToPenpot}
-      disabled={!$threeSceneStore.component || isExporting}
-      data-appearance="secondary"
-      class="flex-1 flex justify-center gap-2 items-center"
-      use:tooltip={{
-        text: 'Export the SVG as PNG and upload to Penpot',
-        position: 'bottom',
-        maxWidth: 'max-w-[300px]',
-      }}
-    >
-      {#if isExporting}
-        Exporting...
-      {:else}
-        Export to Penpot
-      {/if}
-    </button>
-
-    <input
-      id="svgInput"
-      type="file"
-      accept=".svg"
-      class="hidden"
-      on:change={handleSVGUpload}
-    />
-  </div>
-
-  <div class="border-t pt-4 mt-4">
-    <MaterialControls />
-  </div>
-
-  <div class="border-t pt-4 mt-4">
-    <ObjectControls />
-  </div>
-
-  <div class="border-t pt-4 mt-4">
-    <CameraControls />
-  </div>
-
-  <div class="border-t pt-4 mt-4">
-    <ColorControls />
-  </div>
+    {:else if activeTab === 'material'}
+      <MaterialControls />
+    {:else if activeTab === 'object'}
+      <ObjectControls />
+    {:else if activeTab === 'camera'}
+      <CameraControls />
+    {:else if activeTab === 'color'}
+      <ColorControls />
+    {/if}
+  </Tabs>
 </div>
