@@ -33,6 +33,7 @@
       icon: Box,
       component: ObjectControls,
       tooltip: 'Object Settings',
+      requiresSVG: true,
     },
     {
       id: 'shapes',
@@ -40,6 +41,7 @@
       icon: Shapes,
       component: ShapeControls,
       tooltip: 'Shape Controls',
+      requiresSVG: true,
     },
     {
       id: 'material',
@@ -47,6 +49,7 @@
       icon: Palette,
       component: MaterialControls,
       tooltip: 'Material Settings',
+      requiresSVG: true,
     },
     {
       id: 'camera',
@@ -54,10 +57,16 @@
       icon: Camera,
       component: CameraControls,
       tooltip: 'Camera Controls',
+      requiresSVG: true,
     },
   ];
 
   let activeTab = 'file';
+
+  // Reset to file tab when SVG is removed
+  $: if (!$svgStore.content && activeTab !== 'file') {
+    activeTab = 'file';
+  }
 
   // Just update the display value during dragging
   function handleInput(event: Event): void {
@@ -188,7 +197,7 @@
         <button
           on:click={() => document.getElementById('svgInput').click()}
           disabled={isProcessing}
-          data-appearance="secondary"
+          data-appearance="primary"
           class="flex-1 flex justify-center gap-2 items-center"
           use:tooltip={{
             text: 'Upload an SVG file to work with',
@@ -202,7 +211,7 @@
         <button
           on:click={handleExportToPenpot}
           disabled={!$threeSceneStore.component || isExporting}
-          data-appearance="secondary"
+          data-appearance="primary"
           class="flex-1 flex justify-center gap-2 items-center"
           use:tooltip={{
             text: 'Export the SVG as PNG and upload to Penpot',

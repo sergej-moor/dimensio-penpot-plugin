@@ -340,6 +340,10 @@
       handleMaterialChange,
     });
     setMaterialChangeHandler(handleMaterialChange);
+
+    // Load materials first
+    await loadMaterials();
+
     console.log('ThreeScene mounting, container:', container);
     // Scene setup
     scene = new THREE.Scene();
@@ -441,6 +445,51 @@
   $: if ($svgStore.content && scene) {
     console.log('Creating SVG mesh from content:', $svgStore.content);
     createSVGMesh($svgStore.content, false); // Don't preserve camera on initial load
+
+    // Apply default material if available
+    if ($materialStore.defaultMaterial) {
+      const textureLoader = new THREE.TextureLoader();
+      const textures: Record<string, THREE.Texture> = {};
+
+      // Load all textures for the default material
+      Promise.all(
+        Object.entries($materialStore.defaultMaterial.maps).map(
+          ([mapType, path]) => {
+            if (!path) return Promise.resolve();
+            return new Promise<void>((resolve, reject) => {
+              textureLoader.load(
+                path,
+                (texture) => {
+                  texture.wrapS = THREE.RepeatWrapping;
+                  texture.wrapT = THREE.RepeatWrapping;
+                  texture.repeat.set(
+                    $materialStore.settings.textureRepeat,
+                    $materialStore.settings.textureRepeat
+                  );
+
+                  if (mapType === 'normal') {
+                    texture.colorSpace = THREE.LinearSRGBColorSpace;
+                  } else if (mapType === 'diffuse') {
+                    texture.colorSpace = THREE.SRGBColorSpace;
+                  }
+
+                  textures[mapType] = texture;
+                  resolve();
+                },
+                undefined,
+                reject
+              );
+            });
+          }
+        )
+      )
+        .then(() => {
+          handleMaterialChange(textures, $materialStore.settings);
+        })
+        .catch((error) => {
+          console.error('Error loading default material textures:', error);
+        });
+    }
   }
 
   // Subscribe to object store changes to update the mesh

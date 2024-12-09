@@ -1,11 +1,13 @@
 <script lang="ts">
   import { tooltip } from '../actions/tooltip';
+  import { svgStore } from '../stores/svg';
 
   export let tabs: Array<{
     id: string;
     label: string;
     icon: any;
     tooltip: string;
+    requiresSVG?: boolean;
   }>;
   export let activeTab: string;
 </script>
@@ -17,9 +19,14 @@
         class="w-10 h-10 flex justify-center items-center"
         data-appearance="secondary"
         class:active={activeTab === tab.id}
+        class:disabled={tab.requiresSVG && !$svgStore.content}
+        disabled={tab.requiresSVG && !$svgStore.content}
         on:click={() => (activeTab = tab.id)}
         use:tooltip={{
-          text: tab.tooltip,
+          text:
+            tab.requiresSVG && !$svgStore.content
+              ? 'Upload an SVG first'
+              : tab.tooltip,
           position: 'bottom',
           maxWidth: 'max-w-[300px]',
         }}
@@ -44,7 +51,7 @@
     padding: 0;
   }
 
-  button:hover:not(.active) {
+  button:hover:not(.active):not(.disabled) {
     background-color: var(--la-tertiary);
   }
 
@@ -53,13 +60,18 @@
     color: var(--lf-on-primary);
   }
 
+  button.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   /* Dark mode overrides */
   :global(main[data-theme='dark']) button {
     background-color: var(--db-primary);
     color: var(--df-primary);
   }
 
-  :global(main[data-theme='dark']) button:hover:not(.active) {
+  :global(main[data-theme='dark']) button:hover:not(.active):not(.disabled) {
     background-color: var(--da-tertiary);
   }
 

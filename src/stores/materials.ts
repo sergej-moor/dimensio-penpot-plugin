@@ -29,8 +29,9 @@ export const DEFAULT_MATERIAL_SETTINGS: MaterialSettings = {
   envMapIntensity: 1.0,
 };
 
-interface MaterialState {
+export interface MaterialState {
   currentMaterial: Material | null;
+  defaultMaterial: Material | null;
   materials: Material[];
   isLoading: boolean;
   error: string | null;
@@ -39,6 +40,7 @@ interface MaterialState {
 
 const initialState: MaterialState = {
   currentMaterial: null,
+  defaultMaterial: null,
   materials: [],
   isLoading: false,
   error: null,
@@ -59,6 +61,9 @@ export async function loadMaterials(): Promise<void> {
     materialStore.update((state) => ({
       ...state,
       materials: MATERIALS,
+      // Set the default material (first material in the list)
+      defaultMaterial: MATERIALS[0],
+      currentMaterial: MATERIALS[0],
       isLoading: false,
     }));
   } catch (error) {
