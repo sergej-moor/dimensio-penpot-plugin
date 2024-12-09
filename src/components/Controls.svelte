@@ -10,7 +10,8 @@
   import CameraControls from './CameraControls.svelte';
   import ShapeControls from './ShapeControls.svelte';
   import Tabs from './Tabs.svelte';
-  import { FileUp, Box, Shapes, Palette, Camera } from 'lucide-svelte';
+  import { FileUp, Box, Shapes, Palette, Camera, Wand2 } from 'lucide-svelte';
+  import PostProcessingControls from './PostProcessingControls.svelte';
 
   let currentValue = $selection.pixelSize;
   let displayValue = currentValue;
@@ -49,6 +50,14 @@
       icon: Palette,
       component: MaterialControls,
       tooltip: 'Material Settings',
+      requiresSVG: true,
+    },
+    {
+      id: 'postprocessing',
+      label: 'Post Processing',
+      icon: Wand2,
+      component: PostProcessingControls,
+      tooltip: 'Post Processing Effects',
       requiresSVG: true,
     },
     {
@@ -242,6 +251,8 @@
       <CameraControls />
     {:else if activeTab === 'shapes'}
       <ShapeControls />
+    {:else if activeTab === 'postprocessing'}
+      <PostProcessingControls />
     {/if}
   </Tabs>
 </div>

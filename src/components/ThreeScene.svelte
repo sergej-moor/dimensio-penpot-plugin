@@ -26,6 +26,11 @@
   } from '../stores/camera';
   import { colorStore, setColorGroups } from '../stores/color';
   import { shapeStore, setShapeGroups } from '../stores/shapes';
+  import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
+  import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
+  import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
+  import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
+  import { postProcessingStore } from '../stores/postprocessing';
 
   // Create a reference to this component instance
   let componentInstance: ThreeScene;
@@ -38,6 +43,67 @@
   let animationFrameId: number;
   let currentMesh: THREE.Mesh | null = null;
   let currentMaterial: THREE.MeshStandardMaterial;
+  let composer: EffectComposer;
+  let bloomPass: UnrealBloomPass;
+  let noisePass: ShaderPass;
+
+  // Update noise shader
+  const noiseShader = {
+    uniforms: {
+      tDiffuse: { value: null },
+      tDepth: { value: null },
+      intensity: { value: 0.5 },
+      cameraNear: { value: 0.1 },
+      cameraFar: { value: 1000 },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform sampler2D tDepth;
+      uniform float intensity;
+      uniform float cameraNear;
+      uniform float cameraFar;
+      varying vec2 vUv;
+      
+      float random(vec2 p) {
+        return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453);
+      }
+
+      float perspectiveDepthToViewZ(float invClipZ, float near, float far) {
+        return (near * far) / ((far - near) * invClipZ - far);
+      }
+      
+      float viewZToOrthographicDepth(float viewZ, float near, float far) {
+        return (viewZ + near) / (near - far);
+      }
+
+      float getDepth(vec2 coord) {
+        float fragCoordZ = texture2D(tDepth, coord).x;
+        float viewZ = perspectiveDepthToViewZ(fragCoordZ, cameraNear, cameraFar);
+        return viewZToOrthographicDepth(viewZ, cameraNear, cameraFar);
+      }
+      
+      void main() {
+        vec4 color = texture2D(tDiffuse, vUv);
+        float depth = getDepth(vUv);
+        
+        // Only apply noise to non-background pixels (where depth is not at far plane)
+        if (depth > 0.0 && depth < 0.99) {
+          vec2 uvRandom = vUv;
+          uvRandom.y *= random(vec2(uvRandom.y, 0.4));
+          color.rgb += random(uvRandom) * intensity;
+        }
+        
+        gl_FragColor = color;
+      }
+    `,
+  };
 
   function createDefaultCube() {
     const geometry = new THREE.BoxGeometry();
@@ -334,6 +400,59 @@
     });
   }
 
+  function setupPostprocessing() {
+    if (!renderer || !scene || !camera) return;
+
+    // Enable depth texture
+    renderer.setPixelRatio(window.devicePixelRatio);
+    const depthTexture = new THREE.DepthTexture();
+    const renderTarget = new THREE.WebGLRenderTarget(
+      window.innerWidth * window.devicePixelRatio,
+      window.innerHeight * window.devicePixelRatio,
+      {
+        depthTexture: depthTexture,
+        depthBuffer: true,
+      }
+    );
+
+    composer = new EffectComposer(renderer, renderTarget);
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    // Bloom pass
+    bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      1.5,
+      0.4,
+      0.85
+    );
+    composer.addPass(bloomPass);
+
+    // Noise pass with depth
+    noisePass = new ShaderPass(noiseShader);
+    noisePass.uniforms.tDepth.value = depthTexture;
+    noisePass.uniforms.cameraNear.value = camera.near;
+    noisePass.uniforms.cameraFar.value = camera.far;
+    composer.addPass(noisePass);
+
+    // Initial state
+    updatePostProcessingEffects($postProcessingStore.settings);
+  }
+
+  function updatePostProcessingEffects(settings: PostProcessingSettings) {
+    if (!bloomPass || !noisePass) return;
+
+    // Update bloom
+    bloomPass.enabled = settings.bloom.enabled;
+    bloomPass.strength = settings.bloom.intensity;
+    bloomPass.threshold = settings.bloom.threshold;
+    bloomPass.radius = settings.bloom.radius;
+
+    // Update noise
+    noisePass.enabled = settings.noise.enabled;
+    noisePass.uniforms.intensity.value = settings.noise.intensity;
+  }
+
   onMount(async () => {
     setThreeSceneComponent({
       captureScene,
@@ -415,16 +534,33 @@
       }
 
       controls.update();
-      renderer.render(scene, camera);
+
+      // Use composer instead of renderer
+      if (composer) {
+        composer.render();
+      } else {
+        renderer.render(scene, camera);
+      }
     }
 
     animate();
 
     // Handle resize
     const handleResize = () => {
+      const width = container.clientWidth * window.devicePixelRatio;
+      const height = container.clientHeight * window.devicePixelRatio;
+
       camera.aspect = container.clientWidth / container.clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(container.clientWidth, container.clientHeight);
+
+      if (composer) {
+        composer.setSize(container.clientWidth, container.clientHeight);
+        // Update render target size
+        const depthTexture = composer.renderTarget1.depthTexture;
+        composer.renderTarget1.setSize(width, height);
+        composer.renderTarget2.setSize(width, height);
+      }
     };
 
     window.addEventListener('resize', handleResize);
@@ -435,6 +571,8 @@
     } catch (error) {
       console.error('Failed to load HDR environment:', error);
     }
+
+    setupPostprocessing();
 
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -532,6 +670,11 @@
         }
       });
     });
+  }
+
+  // Subscribe to postprocessing store changes
+  $: if (composer && $postProcessingStore.settings) {
+    updatePostProcessingEffects($postProcessingStore.settings);
   }
 
   onDestroy(() => {
