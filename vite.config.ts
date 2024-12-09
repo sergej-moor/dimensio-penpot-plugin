@@ -24,4 +24,7 @@ export default defineConfig({
   preview: {
     port: 4405,
   },
+  optimizeDeps: {
+    include: ['three'],
+  },
 });

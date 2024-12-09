@@ -5,6 +5,7 @@
   import { createImageUrl, revokeImageUrl } from '../utils/imageUrl';
   import LoadingSpinner from './LoadingSpinner.svelte';
   import { svgStore } from '../stores/svg';
+  import ThreeScene from './ThreeScene.svelte';
 
   let previewUrl: string | undefined;
 
@@ -70,17 +71,9 @@
         {/if}
       </div>
     {:else}
-      <!-- Initial State -->
-      <div class="flex items-center justify-center w-full h-full">
-        <div class="text-sm text-center">
-          {#if $selection.name}
-            <LoadingSpinner />
-            {LOADING_MESSAGES.INITIAL}
-            <p>{displayName}</p>
-          {:else}
-            {LOADING_MESSAGES.NO_SELECTION}
-          {/if}
-        </div>
+      <!-- Show Three.js scene when no other content is displayed -->
+      <div class="w-full h-full">
+        <ThreeScene />
       </div>
     {/if}
   </div>
