@@ -99,10 +99,10 @@
   {:else if $materialStore.error}
     <p class="text-sm text-red-600">{$materialStore.error}</p>
   {:else}
-    <div class="grid grid-cols-2 gap-2">
+    <div class="grid grid-cols-4 gap-1">
       {#each $materialStore.materials as material}
         <button
-          class="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          class="p-1 border rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           class:bg-blue-50={selectedMaterial?.name === material.name}
           disabled={isLoading}
           on:click={() => handleMaterialSelect(material)}
@@ -111,15 +111,21 @@
             position: 'top',
           }}
         >
-          {#if material.maps.diffuse}
+          {#if material.maps.preview}
+            <img
+              src={material.maps.preview}
+              alt={material.name}
+              class="w-12 h-12 object-cover rounded"
+            />
+          {:else if material.maps.diffuse}
             <img
               src={material.maps.diffuse}
               alt={material.name}
-              class="w-full aspect-square object-cover rounded"
+              class="w-12 h-12 object-cover rounded"
             />
           {:else}
             <div
-              class="w-full aspect-square bg-gray-200 rounded flex items-center justify-center"
+              class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-xs"
             >
               {material.name}
             </div>

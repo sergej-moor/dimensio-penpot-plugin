@@ -36,8 +36,10 @@
   }
 </script>
 
-<div class="rounded-lg border border-gray-200 dark:border-gray-700">
-  <div class="relative w-[300px] h-[300px] min-h-[100px]">
+<div>
+  <div
+    class="rounded-lg border relative border-gray-200 dark:border-gray-700 w-[500px] h-[500px]"
+  >
     {#if $svgStore.content || $svgStore.error}
       <!-- Show Three.js scene when SVG is loaded -->
       <div class="w-full h-full">
@@ -58,7 +60,7 @@
         <img
           src={previewUrl}
           alt="Selected shape"
-          class="w-[300px] h-[300px] max-w-full max-h-[300px] p-2 object-contain rounded transition-opacity"
+          class="w-[500px] h-[500px] max-w-full max-h-[500px] p-2 object-contain rounded transition-opacity"
           class:opacity-50={$selection.isPreviewLoading}
         />
 
@@ -86,8 +88,8 @@
   :global(svg) {
     width: 100%;
     height: 100%;
-    max-width: 300px;
-    max-height: 300px;
+    max-width: 500px;
+    max-height: 500px;
     padding: 8px;
   }
 </style>

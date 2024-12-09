@@ -11,6 +11,7 @@ export interface Material {
     metalness?: string;
     ao?: string;
     height?: string;
+    preview?: string;
   };
 }
 

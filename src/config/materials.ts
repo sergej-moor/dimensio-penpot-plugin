@@ -10,7 +10,8 @@ export const MATERIALS: Material[] = [
       roughness: '/materials/Cog Patterned/cog-patterned-metal_roughness.png',
       metalness: '/materials/Cog Patterned/cog-patterned-metal_albedo.png',
       ao: '/materials/Cog Patterned/cog-patterned-metal_ao.png',
-      height: '/materials/Cog Patterned/cog-patterned-metal_height.png'
+      height: '/materials/Cog Patterned/cog-patterned-metal_height.png',
+      preview: '/materials/Cog Patterned/cog-patterned-metal_preview.jpg'
     }
   },
   {
@@ -22,7 +23,8 @@ export const MATERIALS: Material[] = [
       roughness: '/materials/Reinforced Metal/reinforced-metal_roughness.png',
       metalness: '/materials/Reinforced Metal/reinforced-metal_albedo.png',
       ao: '/materials/Reinforced Metal/reinforced-metal_ao.png',
-      height: '/materials/Reinforced Metal/reinforced-metal_height.png'
+      height: '/materials/Reinforced Metal/reinforced-metal_height.png',
+      preview: '/materials/Reinforced Metal/reinforced-metal_preview.jpg'
     }
   },
   {
@@ -34,7 +36,8 @@ export const MATERIALS: Material[] = [
       roughness: '/materials/Textured Aluminium/textured-aluminum_roughness.png',
       metalness: '/materials/Textured Aluminium/textured-aluminum_metallic.png',
       ao: '/materials/Textured Aluminium/textured-aluminum_ao.png',
-      height: '/materials/Textured Aluminium/textured-aluminum_height.png'
+      height: '/materials/Textured Aluminium/textured-aluminum_height.png',
+      preview: '/materials/Textured Aluminium/textured-aluminum_preview.jpg'
     }
   }
 ];

@@ -14,13 +14,9 @@
 <svelte:window onmessage={MessageHandler.handle} />
 
 <main data-theme={$theme}>
-  <h2
-    class=" text-center mb-2 font-GamjaFlower tracking-widest hover:tracking-[0.7rem] transition-all duration-700 font-bold"
-  >
-    Pixelize!
-  </h2>
-  <div class="flex flex-col gap-4">
+  <div class="flex w-full gap-4">
     <!-- Wrap Preview with its own error boundary -->
+
     <ErrorBoundary
       fallback="Unable to load preview. Please try selecting a different image."
       onError={handlePreviewError}
@@ -29,18 +25,26 @@
     </ErrorBoundary>
 
     <!-- Wrap Controls with its own error boundary -->
-    <ErrorBoundary
-      fallback="Controls are temporarily unavailable. Please refresh the page."
-    >
-      <Controls />
-    </ErrorBoundary>
+    <div class="max-h-[500px] flex flex-col">
+      <h2
+        class=" text-center font-Oswald tracking-wide hover:tracking-[0.3rem] transition-all duration-700 font-bold my-4"
+      >
+        Retro Halftones
+      </h2>
+
+      <ErrorBoundary
+        fallback="Controls are temporarily unavailable. Please refresh the page."
+      >
+        <Controls />
+      </ErrorBoundary>
+    </div>
   </div>
 </main>
 
 <style>
   main {
     padding: var(--spacing-8);
-    max-width: 408px; /* Match plugin width */
+
     margin: 0 auto;
   }
 </style>

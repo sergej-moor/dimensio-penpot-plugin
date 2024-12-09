@@ -10,6 +10,7 @@ const SUFFIXES = {
   metalness: ['metallic', 'metalness', 'metal'],
   ao: ['ao', 'ambient', 'occlusion'],
   height: ['height', 'displacement', 'disp'],
+  preview: ['preview'],
 };
 
 function generateMaterialsFile(): void {

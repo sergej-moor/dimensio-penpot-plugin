@@ -136,7 +136,7 @@
   }
 </script>
 
-<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-4 min-w-72 w-full h-full justify-between">
   <div class="checkbox-container flex items-center justify-end gap-2">
     <div
       use:tooltip={{

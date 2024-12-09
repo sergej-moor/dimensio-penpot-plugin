@@ -13,8 +13,8 @@ import type {
 // Configuration
 const PLUGIN_CONFIG = {
   name: 'Dimensio',
-  width: 340,
-  height: 722,
+  width: 940,
+  height: 922,
 } as const;
 
 // Plugin initialization

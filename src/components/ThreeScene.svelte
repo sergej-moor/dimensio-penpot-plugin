@@ -352,7 +352,7 @@
 </script>
 
 <div class="relative">
-  <div bind:this={container} class="w-full h-full min-h-[300px]" />
+  <div bind:this={container} class="w-full h-full min-h-[500px]"></div>
 </div>
 
 <style>
