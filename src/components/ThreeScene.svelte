@@ -9,6 +9,13 @@
     setMaterialChangeHandler,
     setThreeSceneComponent,
   } from '../stores/threeScene';
+  import {
+    materialStore,
+    loadMaterials,
+    type Material,
+    updateMaterialSettings,
+    type MaterialSettings,
+  } from '../stores/materials';
 
   // Create a reference to this component instance
   let componentInstance: ThreeScene;
@@ -210,7 +217,8 @@
   }
 
   export function handleMaterialChange(
-    textures: Record<string, THREE.Texture>
+    textures: Record<string, THREE.Texture>,
+    settings = $materialStore.settings
   ): void {
     if (!currentMesh) return;
 
@@ -221,7 +229,14 @@
       metalnessMap: textures.metalness,
       aoMap: textures.ao,
       displacementMap: textures.height,
-      displacementScale: 0.1,
+      displacementScale: 0,
+      metalness: settings.metalness,
+      roughness: settings.roughness,
+    });
+
+    // Apply texture repeat settings to all textures
+    Object.values(textures).forEach((texture) => {
+      texture.repeat.set(settings.textureRepeat, settings.textureRepeat);
     });
 
     if (currentMesh instanceof THREE.Mesh) {

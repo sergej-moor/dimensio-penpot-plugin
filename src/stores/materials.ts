@@ -15,11 +15,24 @@ export interface Material {
   };
 }
 
+export interface MaterialSettings {
+  textureRepeat: number;
+  metalness: number;
+  roughness: number;
+}
+
+export const DEFAULT_MATERIAL_SETTINGS: MaterialSettings = {
+  textureRepeat: 0.005,
+  metalness: 1,
+  roughness: 0,
+};
+
 interface MaterialState {
   currentMaterial: Material | null;
   materials: Material[];
   isLoading: boolean;
   error: string | null;
+  settings: MaterialSettings;
 }
 
 const initialState: MaterialState = {
@@ -27,6 +40,7 @@ const initialState: MaterialState = {
   materials: [],
   isLoading: false,
   error: null,
+  settings: { ...DEFAULT_MATERIAL_SETTINGS },
 };
 
 export const materialStore = writable<MaterialState>(initialState);
@@ -58,5 +72,17 @@ export function setCurrentMaterial(material: Material | null): void {
   materialStore.update((state) => ({
     ...state,
     currentMaterial: material,
+  }));
+}
+
+export function updateMaterialSettings(
+  settings: Partial<MaterialSettings>
+): void {
+  materialStore.update((state) => ({
+    ...state,
+    settings: {
+      ...state.settings,
+      ...settings,
+    },
   }));
 }

@@ -5,6 +5,8 @@
     materialStore,
     loadMaterials,
     type Material,
+    updateMaterialSettings,
+    type MaterialSettings,
   } from '../stores/materials';
   import { tooltip } from '../actions/tooltip';
   import LoadingSpinner from './LoadingSpinner.svelte';
@@ -79,6 +81,30 @@
     await loadTexturesForMaterial(material);
   }
 
+  function handleSettingChange(setting: keyof MaterialSettings, value: number) {
+    updateMaterialSettings({ [setting]: value });
+
+    // If we have textures loaded, update them with new settings
+    if (selectedMaterial) {
+      const currentTextures = Object.entries(loadedTextures).reduce(
+        (acc, [key, texture]) => {
+          texture.repeat.set(
+            $materialStore.settings.textureRepeat,
+            $materialStore.settings.textureRepeat
+          );
+          acc[key] = texture;
+          return acc;
+        },
+        {} as Record<string, THREE.Texture>
+      );
+
+      $threeSceneStore.component?.handleMaterialChange(
+        currentTextures,
+        $materialStore.settings
+      );
+    }
+  }
+
   onMount(() => {
     loadMaterials();
   });
@@ -140,4 +166,53 @@
       </div>
     {/if}
   {/if}
+</div>
+
+<div class="mt-4 flex flex-col gap-4">
+  <div class="flex flex-col gap-2">
+    <label class="text-sm flex justify-between">
+      Texture Repeat: {$materialStore.settings.textureRepeat.toFixed(3)}
+      <input
+        type="range"
+        min="0.001"
+        max="0.02"
+        step="0.001"
+        value={$materialStore.settings.textureRepeat}
+        on:input={(e) =>
+          handleSettingChange(
+            'textureRepeat',
+            parseFloat(e.currentTarget.value)
+          )}
+        class="flex-1 ml-2"
+      />
+    </label>
+
+    <label class="text-sm flex justify-between">
+      Metalness: {$materialStore.settings.metalness.toFixed(2)}
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.01"
+        value={$materialStore.settings.metalness}
+        on:input={(e) =>
+          handleSettingChange('metalness', parseFloat(e.currentTarget.value))}
+        class="flex-1 ml-2"
+      />
+    </label>
+
+    <label class="text-sm flex justify-between">
+      Roughness: {$materialStore.settings.roughness.toFixed(2)}
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.01"
+        value={$materialStore.settings.roughness}
+        on:input={(e) =>
+          handleSettingChange('roughness', parseFloat(e.currentTarget.value))}
+        class="flex-1 ml-2"
+      />
+    </label>
+  </div>
 </div>
