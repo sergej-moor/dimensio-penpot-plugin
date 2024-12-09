@@ -27,7 +27,7 @@
     <!-- Wrap Controls with its own error boundary -->
     <div class="max-h-[500px] flex flex-col">
       <h2
-        class=" font-Montserrat tracking-wide hover:tracking-[0.3rem] transition-all duration-700 font-bold my-4"
+        class=" font-Montserrat tracking-wide hover:tracking-[0.3rem] transition-all duration-700 font-medium my-4"
       >
         Dimensio
       </h2>

@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        GamjaFlower: ['Montserrat', 'sans-serif'],
+        Montserrat: ['Montserrat', 'sans-serif'],
       },
     },
   },

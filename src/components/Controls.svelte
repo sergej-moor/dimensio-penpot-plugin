@@ -10,7 +10,15 @@
   import CameraControls from './CameraControls.svelte';
   import ShapeControls from './ShapeControls.svelte';
   import Tabs from './Tabs.svelte';
-  import { FileUp, Box, Shapes, Palette, Camera, Wand2 } from 'lucide-svelte';
+  import {
+    Upload,
+    Settings2,
+    Paintbrush,
+    Aperture,
+    Sparkles,
+    Save,
+    Palette,
+  } from 'lucide-svelte';
   import PostProcessingControls from './PostProcessingControls.svelte';
 
   let currentValue = $selection.pixelSize;
@@ -24,14 +32,14 @@
     {
       id: 'file',
       label: 'File',
-      icon: FileUp,
+      icon: Upload,
       component: undefined,
       tooltip: 'File Operations',
     },
     {
       id: 'object',
       label: 'Object',
-      icon: Box,
+      icon: Settings2,
       component: ObjectControls,
       tooltip: 'Object Settings',
       requiresSVG: true,
@@ -39,7 +47,7 @@
     {
       id: 'shapes',
       label: 'Shapes',
-      icon: Shapes,
+      icon: Palette,
       component: ShapeControls,
       tooltip: 'Shape Controls',
       requiresSVG: true,
@@ -47,7 +55,7 @@
     {
       id: 'material',
       label: 'Material',
-      icon: Palette,
+      icon: Paintbrush,
       component: MaterialControls,
       tooltip: 'Material Settings',
       requiresSVG: true,
@@ -55,7 +63,7 @@
     {
       id: 'postprocessing',
       label: 'Post Processing',
-      icon: Wand2,
+      icon: Sparkles,
       component: PostProcessingControls,
       tooltip: 'Post Processing Effects',
       requiresSVG: true,
@@ -63,9 +71,17 @@
     {
       id: 'camera',
       label: 'Camera',
-      icon: Camera,
+      icon: Aperture,
       component: CameraControls,
       tooltip: 'Camera Controls',
+      requiresSVG: true,
+    },
+    {
+      id: 'exports',
+      label: 'Exports',
+      icon: Save,
+      component: undefined,
+      tooltip: 'Export Options',
       requiresSVG: true,
     },
   ];
@@ -217,6 +233,16 @@
           Upload SVG
         </button>
 
+        <input
+          id="svgInput"
+          type="file"
+          accept=".svg"
+          class="hidden"
+          on:change={handleSVGUpload}
+        />
+      </div>
+    {:else if activeTab === 'exports'}
+      <div class="flex flex-col gap-2">
         <button
           on:click={handleExportToPenpot}
           disabled={!$threeSceneStore.component || isExporting}
@@ -234,14 +260,6 @@
             Export to Penpot
           {/if}
         </button>
-
-        <input
-          id="svgInput"
-          type="file"
-          accept=".svg"
-          class="hidden"
-          on:change={handleSVGUpload}
-        />
       </div>
     {:else if activeTab === 'material'}
       <MaterialControls />
