@@ -38,14 +38,16 @@
 
 <div class="rounded-lg border border-gray-200 dark:border-gray-700">
   <div class="relative w-[300px] h-[300px] min-h-[100px]">
-    {#if $svgStore.error}
-      <div class="flex items-center justify-center h-full p-4">
-        <p class="text-sm text-red-600 text-center">{$svgStore.error}</p>
+    {#if $svgStore.content || $svgStore.error}
+      <!-- Show Three.js scene when SVG is loaded -->
+      <div class="w-full h-full">
+        <ThreeScene />
       </div>
-    {:else if $svgStore.content}
-      <div class="flex items-center justify-center relative w-full h-full">
-        {@html $svgStore.content}
-      </div>
+      {#if $svgStore.error}
+        <div class="flex items-center justify-center h-full p-4">
+          <p class="text-sm text-red-600 text-center">{$svgStore.error}</p>
+        </div>
+      {/if}
     {:else if $selection.error}
       <div class="flex items-center justify-center h-full p-4">
         <p class="text-sm text-red-600 text-center">{$selection.error}</p>
