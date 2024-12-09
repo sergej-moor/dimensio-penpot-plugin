@@ -111,10 +111,8 @@
       const extrudeSettings = {
         steps: $objectStore.settings.steps,
         depth: $objectStore.settings.depth,
-        bevelEnabled: true,
-        bevelThickness: 0.2,
-        bevelSize: 0.1,
-        bevelSegments: $objectStore.settings.curveSegments,
+        bevelEnabled: false,
+        curveSegments: $objectStore.settings.curveSegments,
       };
 
       // Create a group to hold all shape meshes
