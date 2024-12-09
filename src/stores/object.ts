@@ -8,7 +8,7 @@ export interface ObjectSettings {
 }
 
 export const DEFAULT_OBJECT_SETTINGS: ObjectSettings = {
-  depth: 1,
+  depth: 10,
   scale: 1,
   curveSegments: 12,
   steps: 1,

@@ -13,12 +13,12 @@
 
   <div class="flex flex-col gap-2">
     <label class="text-sm flex justify-between">
-      Depth: {$objectStore.settings.depth.toFixed(2)}
+      Depth: {$objectStore.settings.depth.toFixed(0)}
       <input
         type="range"
-        min="0.1"
-        max="5"
-        step="0.1"
+        min="1"
+        max="20"
+        step="1"
         value={$objectStore.settings.depth}
         on:input={(e) =>
           handleSettingChange('depth', parseFloat(e.currentTarget.value))}

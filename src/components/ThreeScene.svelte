@@ -140,7 +140,8 @@
       createColorGroups(meshes);
 
       // Update scale based on object settings
-      const baseScale = Math.min(5 / bounds.width, 5 / bounds.height);
+      const targetWidth = 10; // Target width in units
+      const baseScale = targetWidth / bounds.width;
       const scale = baseScale * $objectStore.settings.scale;
       group.scale.set(scale, -scale, scale);
       group.position.set(-bounds.centerX * scale, bounds.centerY * scale, 0);
@@ -342,7 +343,7 @@
     console.log('ThreeScene mounting, container:', container);
     // Scene setup
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf0f0f0); // Light gray background
+    scene.background = null;
     console.log('Scene created');
     camera = new THREE.PerspectiveCamera(
       75,
@@ -355,12 +356,16 @@
       height: container.clientHeight,
     });
 
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+    });
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1;
+    renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
     console.log('Renderer created and appended');
 
