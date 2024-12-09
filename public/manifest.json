@@ -1,0 +1,7 @@
+{
+  "name": "Dimensio",
+  "description": "Turn vectors into 3D!",
+  "code": "/plugin.js",
+  "icon": "/icon.png",
+  "permissions": ["content:read", "content:write"]
+}

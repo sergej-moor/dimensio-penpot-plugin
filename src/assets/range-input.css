@@ -1,0 +1,109 @@
+/* Range input base styles */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  width: 100%;
+  height: 16px;
+  margin: 0 8px;
+  padding: 0;
+}
+
+/* Thumb Styling */
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: -7px;
+}
+
+input[type='range']::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+/* Track Styling */
+input[type='range']::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 2px;
+  border-radius: 1px;
+  transition: all 0.15s ease;
+}
+
+input[type='range']::-moz-range-track {
+  width: 100%;
+  height: 2px;
+  border-radius: 1px;
+  transition: all 0.15s ease;
+}
+
+/* Theme-specific colors */
+[data-theme='light'] input[type='range'] {
+  accent-color: var(--la-primary);
+}
+
+[data-theme='light'] input[type='range']::-webkit-slider-thumb {
+  background: var(--la-primary);
+  box-shadow: 0 0 0 4px rgba(var(--la-primary-rgb), 0.1);
+}
+
+[data-theme='light'] input[type='range']::-webkit-slider-runnable-track {
+  background: var(--lb-tertiary);
+}
+
+[data-theme='light'] input[type='range']::-moz-range-thumb {
+  background: var(--la-primary);
+  box-shadow: 0 0 0 4px rgba(var(--la-primary-rgb), 0.1);
+}
+
+[data-theme='light'] input[type='range']::-moz-range-track {
+  background: var(--lb-tertiary);
+}
+
+[data-theme='dark'] input[type='range'] {
+  accent-color: var(--da-primary);
+}
+
+[data-theme='dark'] input[type='range']::-webkit-slider-thumb {
+  background: var(--da-primary);
+  box-shadow: 0 0 0 4px rgba(var(--da-primary-rgb), 0.2);
+}
+
+[data-theme='dark'] input[type='range']::-webkit-slider-runnable-track {
+  background: var(--db-tertiary);
+}
+
+[data-theme='dark'] input[type='range']::-moz-range-thumb {
+  background: var(--da-primary);
+  box-shadow: 0 0 0 4px rgba(var(--da-primary-rgb), 0.2);
+}
+
+[data-theme='dark'] input[type='range']::-moz-range-track {
+  background: var(--db-tertiary);
+}
+
+/* Hover states */
+input[type='range']:hover::-webkit-slider-thumb {
+  transform: scale(1.1);
+}
+
+input[type='range']:hover::-moz-range-thumb {
+  transform: scale(1.1);
+}
+
+/* Active states */
+input[type='range']:active::-webkit-slider-thumb {
+  transform: scale(0.9);
+}
+
+input[type='range']:active::-moz-range-thumb {
+  transform: scale(0.9);
+}

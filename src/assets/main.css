@@ -1,0 +1,69 @@
+@import './penpot.css';
+@import './range-input.css';
+
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'GamjaFlower';
+  src: url('/public/GamjaFlower-Regular.ttf');
+}
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}
+
+/* Layout */
+body {
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+}
+
+/* Theme */
+main[data-theme='light'] {
+  --background-color: var(--lb-primary);
+  --text-color: var(--lf-primary);
+}
+
+main[data-theme='dark'] {
+  --background-color: var(--db-primary);
+  --text-color: var(--df-primary);
+}
+
+main {
+  color-scheme: light dark;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  padding: var(--spacing-8);
+  width: 100%;
+
+  margin: 0 auto;
+}
+
+/* Button styles */
+button {
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.8rem;
+  border: none;
+  outline: none;
+  transition: box-shadow 0.2s ease;
+}
+
+button:focus {
+  box-shadow: 0 0 0 0px var(--la-primary);
+}
