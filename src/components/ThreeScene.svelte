@@ -18,6 +18,12 @@
   } from '../stores/materials';
   import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
   import { objectStore } from '../stores/object';
+  import {
+    cameraStore,
+    updateCameraPosition,
+    updateCameraTarget,
+    setDefaultCameraPosition,
+  } from '../stores/camera';
 
   // Create a reference to this component instance
   let componentInstance: ThreeScene;
@@ -111,7 +117,10 @@
         const fov = camera.fov * (Math.PI / 180);
         const cameraDistance = Math.abs(maxDim / Math.sin(fov / 2) / 2);
 
-        camera.position.set(0, 0, cameraDistance);
+        const defaultPosition = new THREE.Vector3(0, 0, cameraDistance);
+        setDefaultCameraPosition(defaultPosition, center);
+
+        camera.position.copy(defaultPosition);
         camera.lookAt(center);
         controls.target.copy(center);
         controls.update();
@@ -341,6 +350,14 @@
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
+    controls.enablePan = false; // Disable panning
+    controls.target.set(0, 0, 0); // Keep target fixed at center
+
+    // Add this to sync camera position when using orbit controls
+    controls.addEventListener('change', () => {
+      updateCameraPosition(camera.position);
+      updateCameraTarget(controls.target);
+    });
 
     // Animation loop
     function animate() {
@@ -387,6 +404,28 @@
   // Subscribe to object store changes to update the mesh
   $: if ($objectStore.settings && $svgStore.content && scene) {
     createSVGMesh($svgStore.content, true); // Preserve camera when updating settings
+  }
+
+  // Add these subscriptions after the other subscriptions
+  $: if ($cameraStore.position && camera) {
+    camera.position.set(
+      $cameraStore.position.x,
+      $cameraStore.position.y,
+      $cameraStore.position.z
+    );
+    // Always look at the center when position changes
+    camera.lookAt(0, 0, 0);
+    controls.target.set(0, 0, 0);
+    controls.update();
+  }
+
+  $: if ($cameraStore.target && controls) {
+    controls.target.set(
+      $cameraStore.target.x,
+      $cameraStore.target.y,
+      $cameraStore.target.z
+    );
+    controls.update();
   }
 
   onDestroy(() => {
