@@ -6,6 +6,7 @@
   import ThreeScene from './ThreeScene.svelte';
   import MaterialControls from './MaterialControls.svelte';
   import { threeSceneStore } from '../stores/threeScene';
+  import ObjectControls from './ObjectControls.svelte';
 
   let currentValue = $selection.pixelSize;
   let displayValue = currentValue;
@@ -257,5 +258,9 @@
 
   <div class="border-t pt-4 mt-4">
     <MaterialControls />
+  </div>
+
+  <div class="border-t pt-4 mt-4">
+    <ObjectControls />
   </div>
 </div>

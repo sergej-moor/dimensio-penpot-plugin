@@ -17,6 +17,7 @@
     type MaterialSettings,
   } from '../stores/materials';
   import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
+  import { objectStore } from '../stores/object';
 
   // Create a reference to this component instance
   let componentInstance: ThreeScene;
@@ -44,7 +45,7 @@
     return cube;
   }
 
-  function createSVGMesh(svgContent: string) {
+  function createSVGMesh(svgContent: string, preserveCamera = false) {
     // Remove existing mesh if any
     if (currentMesh) {
       console.log('Removing existing mesh');
@@ -71,12 +72,12 @@
 
       // Create extruded geometry from shapes
       const extrudeSettings = {
-        steps: 1,
-        depth: 1,
+        steps: $objectStore.settings.steps,
+        depth: $objectStore.settings.depth,
         bevelEnabled: true,
         bevelThickness: 0.2,
         bevelSize: 0.1,
-        bevelSegments: 3,
+        bevelSegments: $objectStore.settings.curveSegments,
       };
 
       // Create a group to hold all shape meshes
@@ -95,23 +96,26 @@
         group.add(mesh);
       });
 
-      // Center and scale the group
-      const scale = Math.min(5 / bounds.width, 5 / bounds.height);
-      group.scale.set(scale, -scale, scale); // Flip Y to match SVG coordinates
+      // Update scale based on object settings
+      const baseScale = Math.min(5 / bounds.width, 5 / bounds.height);
+      const scale = baseScale * $objectStore.settings.scale;
+      group.scale.set(scale, -scale, scale);
       group.position.set(-bounds.centerX * scale, bounds.centerY * scale, 0);
 
-      // Center camera on the group
-      const box = new THREE.Box3().setFromObject(group);
-      const center = box.getCenter(new THREE.Vector3());
-      const size = box.getSize(new THREE.Vector3());
-      const maxDim = Math.max(size.x, size.y, size.z);
-      const fov = camera.fov * (Math.PI / 180);
-      const cameraDistance = Math.abs(maxDim / Math.sin(fov / 2) / 2);
+      // Only set camera position if this is the first load (not preserving camera)
+      if (!preserveCamera) {
+        const box = new THREE.Box3().setFromObject(group);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = camera.fov * (Math.PI / 180);
+        const cameraDistance = Math.abs(maxDim / Math.sin(fov / 2) / 2);
 
-      camera.position.set(0, 0, cameraDistance);
-      camera.lookAt(center);
-      controls.target.copy(center);
-      controls.update();
+        camera.position.set(0, 0, cameraDistance);
+        camera.lookAt(center);
+        controls.target.copy(center);
+        controls.update();
+      }
 
       scene.add(group);
       currentMesh = group as unknown as THREE.Mesh;
@@ -377,7 +381,12 @@
   // Subscribe to SVG store changes
   $: if ($svgStore.content && scene) {
     console.log('Creating SVG mesh from content:', $svgStore.content);
-    createSVGMesh($svgStore.content);
+    createSVGMesh($svgStore.content, false); // Don't preserve camera on initial load
+  }
+
+  // Subscribe to object store changes to update the mesh
+  $: if ($objectStore.settings && $svgStore.content && scene) {
+    createSVGMesh($svgStore.content, true); // Preserve camera when updating settings
   }
 
   onDestroy(() => {
