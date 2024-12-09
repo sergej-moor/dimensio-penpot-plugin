@@ -8,6 +8,7 @@
   import { threeSceneStore } from '../stores/threeScene';
   import ObjectControls from './ObjectControls.svelte';
   import CameraControls from './CameraControls.svelte';
+  import ColorControls from './ColorControls.svelte';
 
   let currentValue = $selection.pixelSize;
   let displayValue = currentValue;
@@ -139,7 +140,7 @@
 </script>
 
 <div class="flex flex-col gap-4 min-w-72 w-full h-full justify-between">
-  <div class="checkbox-container flex items-center justify-end gap-2">
+  <!--   <div class="checkbox-container flex items-center justify-end gap-2">
     <div
       use:tooltip={{
         text: 'Automatically apply changes while adjusting pixel size',
@@ -184,10 +185,10 @@
       </div>
       <span class="text-sm w-8 text-right">{displayValue}</span>
     </div>
-  </label>
+  </label> -->
 
   <div class="flex flex-col gap-2">
-    <button
+    <!--     <button
       on:click={handleApplyEffect}
       data-appearance="primary"
       disabled={shouldDisableApply}
@@ -214,7 +215,7 @@
       }}
     >
       Create new Shape
-    </button>
+    </button> -->
 
     <button
       on:click={() => document.getElementById('svgInput').click()}
@@ -267,5 +268,9 @@
 
   <div class="border-t pt-4 mt-4">
     <CameraControls />
+  </div>
+
+  <div class="border-t pt-4 mt-4">
+    <ColorControls />
   </div>
 </div>

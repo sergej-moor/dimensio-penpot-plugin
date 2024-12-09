@@ -24,6 +24,7 @@
     updateCameraTarget,
     setDefaultCameraPosition,
   } from '../stores/camera';
+  import { colorStore, setColorGroups } from '../stores/color';
 
   // Create a reference to this component instance
   let componentInstance: ThreeScene;
@@ -49,6 +50,36 @@
     scene.add(cube);
     currentMesh = cube;
     return cube;
+  }
+
+  function createColorGroups(meshes: THREE.Mesh[]): void {
+    const colorMap = new Map<
+      string,
+      { color: THREE.Color; indices: number[] }
+    >();
+
+    meshes.forEach((mesh, index) => {
+      const material = mesh.material as THREE.MeshStandardMaterial;
+      const colorHex = material.color.getHexString();
+
+      if (!colorMap.has(colorHex)) {
+        colorMap.set(colorHex, {
+          color: material.color.clone(),
+          indices: [index],
+        });
+      } else {
+        colorMap.get(colorHex)?.indices.push(index);
+      }
+    });
+
+    const groups = Array.from(colorMap.entries()).map(([hex, data]) => ({
+      id: hex,
+      color: data.color.clone(),
+      defaultColor: data.color.clone(),
+      meshIndices: data.indices,
+    }));
+
+    setColorGroups(groups);
   }
 
   function createSVGMesh(svgContent: string, preserveCamera = false) {
@@ -89,18 +120,24 @@
       // Create a group to hold all shape meshes
       const group = new THREE.Group();
 
-      shapes.forEach((shape, index) => {
+      const meshes: THREE.Mesh[] = [];
+
+      shapes.forEach((shape) => {
         const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
         const material = new THREE.MeshStandardMaterial({
-          color: new THREE.Color().setHSL(index / shapes.length, 0.7, 0.5),
+          color: 0x000000,
           flatShading: true,
           side: THREE.DoubleSide,
           roughness: 0.7,
           metalness: 0.3,
         });
         const mesh = new THREE.Mesh(geometry, material);
+        meshes.push(mesh);
         group.add(mesh);
       });
+
+      // Create color groups after creating meshes
+      createColorGroups(meshes);
 
       // Update scale based on object settings
       const baseScale = Math.min(5 / bounds.width, 5 / bounds.height);
@@ -426,6 +463,19 @@
       $cameraStore.target.z
     );
     controls.update();
+  }
+
+  // Add subscription to color store changes
+  $: if ($colorStore.groups && currentMesh) {
+    // Update mesh colors when color groups change
+    $colorStore.groups.forEach((group) => {
+      group.meshIndices.forEach((index) => {
+        const mesh = (currentMesh as THREE.Group).children[index] as THREE.Mesh;
+        if (mesh && mesh.material instanceof THREE.MeshStandardMaterial) {
+          mesh.material.color.copy(group.color);
+        }
+      });
+    });
   }
 
   onDestroy(() => {
