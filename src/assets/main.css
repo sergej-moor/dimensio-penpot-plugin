@@ -5,8 +5,8 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: 'GamjaFlower';
-  src: url('/public/GamjaFlower-Regular.ttf');
+  font-family: 'Montserrat';
+  src: url('/public/Montserrat-VariableFont_wght.ttf');
 }
 
 :root {

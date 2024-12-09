@@ -27,9 +27,9 @@
     <!-- Wrap Controls with its own error boundary -->
     <div class="max-h-[500px] flex flex-col">
       <h2
-        class=" text-center font-Oswald tracking-wide hover:tracking-[0.3rem] transition-all duration-700 font-bold my-4"
+        class=" font-Montserrat tracking-wide hover:tracking-[0.3rem] transition-all duration-700 font-bold my-4"
       >
-        Retro Halftones
+        Dimensio
       </h2>
 
       <ErrorBoundary

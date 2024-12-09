@@ -10,6 +10,7 @@
   import CameraControls from './CameraControls.svelte';
   import ShapeControls from './ShapeControls.svelte';
   import Tabs from './Tabs.svelte';
+  import { FileUp, Box, Shapes, Palette, Camera } from 'lucide-svelte';
 
   let currentValue = $selection.pixelSize;
   let displayValue = currentValue;
@@ -19,11 +20,41 @@
   let isExporting = false;
 
   const tabs = [
-    { id: 'file', label: 'File' },
-    { id: 'object', label: 'Object', component: ObjectControls },
-    { id: 'shapes', label: 'Shapes', component: ShapeControls },
-    { id: 'material', label: 'Material', component: MaterialControls },
-    { id: 'camera', label: 'Camera', component: CameraControls },
+    {
+      id: 'file',
+      label: 'File',
+      icon: FileUp,
+      component: undefined,
+      tooltip: 'File Operations',
+    },
+    {
+      id: 'object',
+      label: 'Object',
+      icon: Box,
+      component: ObjectControls,
+      tooltip: 'Object Settings',
+    },
+    {
+      id: 'shapes',
+      label: 'Shapes',
+      icon: Shapes,
+      component: ShapeControls,
+      tooltip: 'Shape Controls',
+    },
+    {
+      id: 'material',
+      label: 'Material',
+      icon: Palette,
+      component: MaterialControls,
+      tooltip: 'Material Settings',
+    },
+    {
+      id: 'camera',
+      label: 'Camera',
+      icon: Camera,
+      component: CameraControls,
+      tooltip: 'Camera Controls',
+    },
   ];
 
   let activeTab = 'file';
