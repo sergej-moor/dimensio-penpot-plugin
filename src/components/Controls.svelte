@@ -198,31 +198,31 @@
 
   $: console.log('ThreeScene store state:', $threeSceneStore);
 
-  async function handleExportToPenpot(): Promise<void> {
-    console.log('Export clicked, component:', $threeSceneStore.component);
+  async function handleExportToPenpot(
+    options: { width?: number; height?: number } = { width: 2000, height: 2000 }
+  ): Promise<void> {
+    console.log('Export clicked with options:', options);
     if (isExporting || !$threeSceneStore.component) return;
 
     try {
       isExporting = true;
       const pngData = await $threeSceneStore.component.captureScene({
-        width: 2000,
-        height: 2000,
+        width: options.width,
+        height: options.height,
       });
 
       window.parent.postMessage(
         {
-          type: 'update-image-fill',
+          type: 'export-to-canvas',
           imageData: pngData,
-          addNewLayer: true,
-          originalFill: {
-            opacity: 1,
-            color: '#000000',
-          },
+          width: options.width,
+          height: options.height,
         },
         '*'
       );
+      console.log('Posted message to parent window');
     } catch (error) {
-      console.error('Error exporting scene:', error);
+      console.error('Error exporting scene:', error, error.stack);
       setError('Failed to capture 3D scene');
     } finally {
       isExporting = false;
@@ -230,7 +230,7 @@
   }
 </script>
 
-<div class="flex flex-col gap-4 min-w-72 w-full h-full justify-between">
+<div class="flex flex-col gap-4 w-[330px] h-full justify-between">
   <Tabs {tabs} bind:activeTab>
     {#if activeTab === 'file'}
       <div class="flex flex-col gap-2">
@@ -258,8 +258,10 @@
       </div>
     {:else if activeTab === 'exports'}
       <div class="flex flex-col gap-2">
+        <h3 class="text-sm font-medium">Export Resolution</h3>
+
         <button
-          on:click={handleExportToPenpot}
+          on:click={() => handleExportToPenpot({ width: 1000, height: 1000 })}
           disabled={!$threeSceneStore.component || isExporting}
           data-appearance="primary"
           class="flex-1 flex justify-center gap-2 items-center"
@@ -272,7 +274,43 @@
           {#if isExporting}
             Exporting...
           {:else}
-            Export to Penpot
+            Export (1000px x 1000px)
+          {/if}
+        </button>
+
+        <button
+          on:click={() => handleExportToPenpot({ width: 2000, height: 2000 })}
+          disabled={!$threeSceneStore.component || isExporting}
+          data-appearance="primary"
+          class="flex-1 flex justify-center gap-2 items-center"
+          use:tooltip={{
+            text: 'Export at 2x resolution (4000x4000)',
+            position: 'bottom',
+            maxWidth: 'max-w-[300px]',
+          }}
+        >
+          {#if isExporting}
+            Exporting...
+          {:else}
+            Export (2x)
+          {/if}
+        </button>
+
+        <button
+          on:click={() => handleExportToPenpot({ width: 4000, height: 4000 })}
+          disabled={!$threeSceneStore.component || isExporting}
+          data-appearance="primary"
+          class="flex-1 flex justify-center gap-2 items-center"
+          use:tooltip={{
+            text: 'Export at 4x resolution (8000x8000)',
+            position: 'bottom',
+            maxWidth: 'max-w-[300px]',
+          }}
+        >
+          {#if isExporting}
+            Exporting...
+          {:else}
+            Export (4x)
           {/if}
         </button>
       </div>

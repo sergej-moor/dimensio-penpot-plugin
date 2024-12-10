@@ -248,6 +248,7 @@
   ): Promise<Uint8Array> {
     return new Promise((resolve, reject) => {
       try {
+        console.log('Starting scene capture with options:', options);
         // Create offscreen renderer with enhanced settings
         const offscreenRenderer = new THREE.WebGLRenderer({
           antialias: true,
@@ -258,7 +259,7 @@
         const renderWidth = options.width || 2000;
         const renderHeight = options.height || 2000;
         offscreenRenderer.setSize(renderWidth, renderHeight);
-        offscreenRenderer.setPixelRatio(2); // Increase pixel ratio for sharper render
+        offscreenRenderer.setPixelRatio(1); // Increase pixel ratio for sharper render
 
         // Clone the scene and camera for high-res render
         const offscreenScene = scene.clone();
@@ -274,8 +275,12 @@
         // Render high-res version
         offscreenRenderer.render(offscreenScene, offscreenCamera);
 
+        console.log('Scene rendered, converting to PNG');
+
         // Get the canvas and convert to PNG
         const canvas = document.createElement('canvas');
+        canvas.width = renderWidth;
+        canvas.height = renderHeight;
         const ctx = canvas.getContext('2d')!;
 
         // Create an image from the renderer
@@ -283,13 +288,16 @@
         img.src = offscreenRenderer.domElement.toDataURL('image/png');
 
         img.onload = () => {
-          // Set canvas size
-          canvas.width = img.width;
-          canvas.height = img.height;
-
           // Draw with transparent background
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, 0, 0);
+
+          console.log('Image drawn to canvas, dimensions:', {
+            width: canvas.width,
+            height: canvas.height,
+            imgWidth: img.width,
+            imgHeight: img.height,
+          });
 
           // Convert to blob
           canvas.toBlob((blob) => {
@@ -297,6 +305,8 @@
               reject(new Error('Failed to create PNG blob'));
               return;
             }
+
+            console.log('Created blob:', { size: blob.size });
 
             // Convert blob to Uint8Array
             const reader = new FileReader();
@@ -306,6 +316,9 @@
                 return;
               }
               const arrayBuffer = reader.result as ArrayBuffer;
+              console.log('Converted to array buffer:', {
+                byteLength: arrayBuffer.byteLength,
+              });
               resolve(new Uint8Array(arrayBuffer));
             };
             reader.readAsArrayBuffer(blob);
@@ -325,11 +338,13 @@
           });
         };
 
-        img.onerror = () => {
+        img.onerror = (error) => {
+          console.error('Failed to load image:', error);
           offscreenRenderer.dispose();
           reject(new Error('Failed to create image from render'));
         };
       } catch (error) {
+        console.error('Error in captureScene:', error);
         reject(error);
       }
     });

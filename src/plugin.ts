@@ -194,15 +194,23 @@ async function handleSelectionChange(): Promise<void> {
 }
 
 async function handlePluginMessage(message: PluginMessage): Promise<void> {
-  const selection = penpot.selection[0] as Shape | undefined;
-  if (!selection) return;
-
   switch (message.type) {
     case 'update-image-fill':
-      await handleImageFillUpdate(selection, message);
+      if (penpot.selection[0]) {
+        await handleImageFillUpdate(penpot.selection[0], message);
+      }
+      break;
+    case 'export-to-canvas':
+      await addNewCanvasLayer({
+        imageData: message.imageData,
+        width: message.width || 2000,
+        height: message.height || 2000,
+      });
       break;
     case 'delete-top-layer':
-      deleteTopLayer(selection);
+      if (penpot.selection[0]) {
+        deleteTopLayer(penpot.selection[0]);
+      }
       break;
     default:
       console.warn(`Unhandled message type: ${message.type}`);
@@ -236,6 +244,43 @@ async function handleImageFillUpdate(
     }
   } catch (error) {
     console.error('Error updating image fill:', error);
+  }
+}
+
+async function addNewCanvasLayer({
+  imageData,
+  width,
+  height,
+}: {
+  imageData: Uint8Array;
+  width: number;
+  height: number;
+}): Promise<void> {
+  const blockId = penpot.history.undoBlockBegin();
+
+  try {
+    const imageUrl = await uploadImage(imageData);
+    const imageFill: Fill & { type: 'image' } = {
+      type: 'image',
+      opacity: 1,
+      fillImage: imageUrl,
+    };
+
+    const rect = penpot.createRectangle();
+    rect.x = penpot.viewport.center.x - width / 2;
+    rect.y = penpot.viewport.center.y - height / 2;
+    rect.resize(width, height);
+    rect.fills = [imageFill];
+
+    sendMessage({ type: 'export-complete' });
+  } catch (error) {
+    console.error('Error creating new canvas layer:', error);
+    sendMessage({
+      type: 'export-error',
+      error: 'Failed to create new canvas layer. Please try again.',
+    });
+  } finally {
+    penpot.history.undoBlockFinish(blockId);
   }
 }
 

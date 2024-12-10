@@ -27,7 +27,7 @@
     <button
       on:click={handleResetCamera}
       disabled={!$cameraStore.defaultPosition}
-      class="text-sm px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+      data-appearance="secondary"
       use:tooltip={{
         text: 'Reset camera to default position',
         position: 'left',

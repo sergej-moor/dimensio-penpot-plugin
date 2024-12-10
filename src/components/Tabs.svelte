@@ -51,12 +51,16 @@
     padding: 0;
   }
 
-  button:hover:not(.active):not(.disabled) {
+  :global(main[data-theme='light']) button {
+    background-color: var(--la-primary);
+    color: var(--lf-primary);
+  }
+  :global(main[data-theme='light']) button:hover:not(.active):not(.disabled) {
     background-color: var(--la-tertiary);
   }
 
-  button.active {
-    background-color: var(--la-primary);
+  :global(main[data-theme='light']) button.active {
+    border: var(--la-primary) 1px solid;
     color: var(--lf-on-primary);
   }
 
@@ -76,7 +80,7 @@
   }
 
   :global(main[data-theme='dark']) button.active {
-    background-color: var(--da-primary);
+    border: var(--la-primary) 1px solid;
     color: var(--df-on-primary);
   }
 </style>

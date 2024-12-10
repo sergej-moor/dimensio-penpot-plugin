@@ -9,7 +9,7 @@ export interface CameraState {
 }
 
 const initialState: CameraState = {
-  position: { x: 0, y: 0, z: 5 } as Vector3,
+  position: { x: 0, y: 0, z: 10 } as Vector3,
   target: { x: 0, y: 0, z: 0 } as Vector3,
   defaultPosition: null,
   defaultTarget: null,

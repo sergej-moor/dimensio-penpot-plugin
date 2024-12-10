@@ -38,9 +38,10 @@
         />
         <button
           on:click={() => handleReset(group.id)}
-          class="px-2 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+          data-appearance="secondary"
+          class="normal-case"
         >
-          Reset
+          Reset Color
         </button>
       </div>
       <div class="flex items-center gap-2">
