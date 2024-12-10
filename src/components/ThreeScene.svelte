@@ -27,11 +27,13 @@
   } from '../stores/camera';
   import { colorStore, setColorGroups } from '../stores/color';
   import { shapeStore, setShapeGroups } from '../stores/shapes';
-  import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
-  import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
-  import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
-  import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
+  import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+  import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+  import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+  import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+  import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   import { postProcessingStore } from '../stores/postprocessing';
+  import { ShaderLib } from 'three';
 
   // Create a reference to this component instance
   let componentInstance: ThreeScene;
@@ -47,16 +49,17 @@
   let composer: EffectComposer;
   let bloomPass: UnrealBloomPass;
   let noisePass: ShaderPass;
+  let edgePass: ShaderPass;
+  let colorPass: ShaderPass;
+  let vignettePass: ShaderPass;
+  let pixelationPass: ShaderPass;
   let previousSVGContent: string | null = null;
 
   // Update noise shader
   const noiseShader = {
     uniforms: {
       tDiffuse: { value: null },
-      tDepth: { value: null },
       intensity: { value: 0.5 },
-      cameraNear: { value: 0.1 },
-      cameraFar: { value: 1000 },
     },
     vertexShader: `
       varying vec2 vUv;
@@ -67,42 +70,165 @@
     `,
     fragmentShader: `
       uniform sampler2D tDiffuse;
-      uniform sampler2D tDepth;
       uniform float intensity;
-      uniform float cameraNear;
-      uniform float cameraFar;
       varying vec2 vUv;
       
       float random(vec2 p) {
         return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453);
       }
 
-      float perspectiveDepthToViewZ(float invClipZ, float near, float far) {
-        return (near * far) / ((far - near) * invClipZ - far);
-      }
-      
-      float viewZToOrthographicDepth(float viewZ, float near, float far) {
-        return (viewZ + near) / (near - far);
-      }
-
-      float getDepth(vec2 coord) {
-        float fragCoordZ = texture2D(tDepth, coord).x;
-        float viewZ = perspectiveDepthToViewZ(fragCoordZ, cameraNear, cameraFar);
-        return viewZToOrthographicDepth(viewZ, cameraNear, cameraFar);
-      }
-      
       void main() {
         vec4 color = texture2D(tDiffuse, vUv);
-        float depth = getDepth(vUv);
-        
-        // Only apply noise to non-background pixels (where depth is not at far plane)
-        if (depth > 0.0 && depth < 0.99) {
+        if (color.a > 0.0) {
           vec2 uvRandom = vUv;
           uvRandom.y *= random(vec2(uvRandom.y, 0.4));
           color.rgb += random(uvRandom) * intensity;
         }
         
         gl_FragColor = color;
+      }
+    `,
+  };
+
+  // Add new shader definitions
+  const edgeShader = {
+    uniforms: {
+      tDiffuse: { value: null },
+      intensity: { value: 1.0 },
+      threshold: { value: 0.1 },
+      resolution: {
+        value: new THREE.Vector2(window.innerWidth, window.innerHeight),
+      },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform float intensity;
+      uniform float threshold;
+      uniform vec2 resolution;
+      varying vec2 vUv;
+      
+      void main() {
+        vec4 color = texture2D(tDiffuse, vUv);
+        vec2 texel = vec2(1.0 / resolution.x, 1.0 / resolution.y);
+        
+        vec4 n = texture2D(tDiffuse, vUv + vec2(0.0, texel.y));
+        vec4 s = texture2D(tDiffuse, vUv + vec2(0.0, -texel.y));
+        vec4 e = texture2D(tDiffuse, vUv + vec2(texel.x, 0.0));
+        vec4 w = texture2D(tDiffuse, vUv + vec2(-texel.x, 0.0));
+        
+        float edge = length(n.rgb - s.rgb) + length(e.rgb - w.rgb);
+        edge = edge > threshold ? 1.0 : 0.0;
+        
+        gl_FragColor = vec4(mix(color.rgb, vec3(edge), intensity), color.a);
+      }
+    `,
+  };
+
+  const colorAdjustmentShader = {
+    uniforms: {
+      tDiffuse: { value: null },
+      brightness: { value: 1.0 },
+      saturation: { value: 1.0 },
+      contrast: { value: 1.0 },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform float brightness;
+      uniform float saturation;
+      uniform float contrast;
+      varying vec2 vUv;
+      
+      void main() {
+        vec4 color = texture2D(tDiffuse, vUv);
+        if (color.a == 0.0) {
+          gl_FragColor = color;
+          return;
+        }
+        
+        // Brightness
+        color.rgb *= brightness;
+        
+        // Saturation
+        float gray = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+        color.rgb = mix(vec3(gray), color.rgb, saturation);
+        
+        // Contrast
+        color.rgb = (color.rgb - 0.5) * contrast + 0.5;
+        
+        gl_FragColor = vec4(color.rgb, color.a);
+      }
+    `,
+  };
+
+  const vignetteShader = {
+    uniforms: {
+      tDiffuse: { value: null },
+      darkness: { value: 1.0 },
+      offset: { value: 1.0 },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform float darkness;
+      uniform float offset;
+      varying vec2 vUv;
+      
+      void main() {
+        vec4 color = texture2D(tDiffuse, vUv);
+        vec2 center = vec2(0.5);
+        float dist = distance(vUv, center) * offset;
+        color.rgb *= smoothstep(1.0, darkness, dist);
+        gl_FragColor = color;
+      }
+    `,
+  };
+
+  // Add new shader definitions
+  const pixelationShader = {
+    uniforms: {
+      tDiffuse: { value: null },
+      pixelSize: { value: 8 },
+      resolution: {
+        value: new THREE.Vector2(window.innerWidth, window.innerHeight),
+      },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform float pixelSize;
+      uniform vec2 resolution;
+      varying vec2 vUv;
+      
+      void main() {
+        vec2 dxy = pixelSize / resolution;
+        vec2 coord = dxy * floor(vUv / dxy);
+        gl_FragColor = texture2D(tDiffuse, coord);
       }
     `,
   };
@@ -205,6 +331,8 @@
             const mesh = new THREE.Mesh(geometry, material);
             mesh.position.z =
               meshes.length * 0.05 * $objectStore.settings.depth;
+            mesh.layers.enable(0); // Visible in base layer
+            mesh.layers.enable(1); // Visible in bloom layer
             meshes.push(mesh);
             group.add(mesh);
           });
@@ -456,44 +584,80 @@
   function setupPostprocessing() {
     if (!renderer || !scene || !camera) return;
 
-    // Enable depth texture
     renderer.setPixelRatio(window.devicePixelRatio);
-    const depthTexture = new THREE.DepthTexture();
+    renderer.setClearColor(0x000000, 0);
+
+    // Create render target with alpha
     const renderTarget = new THREE.WebGLRenderTarget(
       window.innerWidth * window.devicePixelRatio,
       window.innerHeight * window.devicePixelRatio,
       {
-        depthTexture: depthTexture,
-        depthBuffer: true,
+        alpha: true,
+        format: THREE.RGBAFormat,
       }
     );
 
     composer = new EffectComposer(renderer, renderTarget);
+
+    // Add render pass
     const renderPass = new RenderPass(scene, camera);
+    renderPass.clear = true;
+    renderPass.clearAlpha = 0;
     composer.addPass(renderPass);
 
-    // Bloom pass
+    // Add bloom pass
     bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
       1.5,
       0.4,
       0.85
     );
+    bloomPass.renderToScreen = false;
     composer.addPass(bloomPass);
 
-    // Noise pass with depth
+    // Add noise pass
     noisePass = new ShaderPass(noiseShader);
-    noisePass.uniforms.tDepth.value = depthTexture;
-    noisePass.uniforms.cameraNear.value = camera.near;
-    noisePass.uniforms.cameraFar.value = camera.far;
+    noisePass.renderToScreen = false;
     composer.addPass(noisePass);
 
-    // Initial state
-    updatePostProcessingEffects($postProcessingStore.settings);
+    // Add pixelation pass before other effects
+    pixelationPass = new ShaderPass(pixelationShader);
+    pixelationPass.renderToScreen = false;
+    composer.addPass(pixelationPass);
+
+    // Add new passes
+    edgePass = new ShaderPass(edgeShader);
+    edgePass.renderToScreen = false;
+    composer.addPass(edgePass);
+
+    colorPass = new ShaderPass(colorAdjustmentShader);
+    colorPass.renderToScreen = false;
+    composer.addPass(colorPass);
+
+    vignettePass = new ShaderPass(vignetteShader);
+    vignettePass.renderToScreen = false;
+    composer.addPass(vignettePass);
+
+    // Output pass should still be last
+    const outputPass = new OutputPass();
+    outputPass.renderToScreen = true;
+    composer.addPass(outputPass);
   }
 
   function updatePostProcessingEffects(settings: PostProcessingSettings) {
-    if (!bloomPass || !noisePass) return;
+    if (
+      !bloomPass ||
+      !noisePass ||
+      !edgePass ||
+      !colorPass ||
+      !vignettePass ||
+      !pixelationPass
+    )
+      return;
+
+    // Update pixelation
+    pixelationPass.enabled = settings.pixelation.enabled;
+    pixelationPass.uniforms.pixelSize.value = settings.pixelation.pixelSize;
 
     // Update bloom
     bloomPass.enabled = settings.bloom.enabled;
@@ -504,6 +668,22 @@
     // Update noise
     noisePass.enabled = settings.noise.enabled;
     noisePass.uniforms.intensity.value = settings.noise.intensity;
+
+    // Update edge detection
+    edgePass.enabled = settings.edge.enabled;
+    edgePass.uniforms.intensity.value = settings.edge.intensity;
+    edgePass.uniforms.threshold.value = settings.edge.threshold;
+
+    // Update color adjustment
+    colorPass.enabled = settings.color.enabled;
+    colorPass.uniforms.brightness.value = settings.color.brightness;
+    colorPass.uniforms.saturation.value = settings.color.saturation;
+    colorPass.uniforms.contrast.value = settings.color.contrast;
+
+    // Update vignette
+    vignettePass.enabled = settings.vignette.enabled;
+    vignettePass.uniforms.darkness.value = settings.vignette.darkness;
+    vignettePass.uniforms.offset.value = settings.vignette.offset;
   }
 
   export function updateMeshMaterial(
@@ -645,6 +825,11 @@
         const depthTexture = composer.renderTarget1.depthTexture;
         composer.renderTarget1.setSize(width, height);
         composer.renderTarget2.setSize(width, height);
+
+        // Update edge detection resolution
+        if (edgePass) {
+          edgePass.uniforms.resolution.value.set(width, height);
+        }
       }
     };
 

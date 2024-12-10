@@ -1,6 +1,10 @@
 import { writable } from 'svelte/store';
 
 export interface PostProcessingSettings {
+  pixelation: {
+    enabled: boolean;
+    pixelSize: number;
+  };
   bloom: {
     enabled: boolean;
     intensity: number;
@@ -11,9 +15,29 @@ export interface PostProcessingSettings {
     enabled: boolean;
     intensity: number;
   };
+  edge: {
+    enabled: boolean;
+    intensity: number;
+    threshold: number;
+  };
+  color: {
+    enabled: boolean;
+    brightness: number;
+    saturation: number;
+    contrast: number;
+  };
+  vignette: {
+    enabled: boolean;
+    darkness: number;
+    offset: number;
+  };
 }
 
 const DEFAULT_SETTINGS: PostProcessingSettings = {
+  pixelation: {
+    enabled: false,
+    pixelSize: 8,
+  },
   bloom: {
     enabled: false,
     intensity: 1,
@@ -23,6 +47,22 @@ const DEFAULT_SETTINGS: PostProcessingSettings = {
   noise: {
     enabled: false,
     intensity: 0.5,
+  },
+  edge: {
+    enabled: false,
+    intensity: 1.0,
+    threshold: 0.1,
+  },
+  color: {
+    enabled: false,
+    brightness: 1.0,
+    saturation: 1.0,
+    contrast: 1.0,
+  },
+  vignette: {
+    enabled: false,
+    darkness: 1.0,
+    offset: 1.0,
   },
 };
 
