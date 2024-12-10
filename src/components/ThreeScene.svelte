@@ -46,6 +46,7 @@
   let composer: EffectComposer;
   let bloomPass: UnrealBloomPass;
   let noisePass: ShaderPass;
+  let previousSVGContent: string | null = null;
 
   // Update noise shader
   const noiseShader = {
@@ -340,18 +341,15 @@
   ): void {
     if (!currentMesh) return;
 
-    const material = new THREE.MeshStandardMaterial({
-      map: textures.diffuse,
-      normalMap: textures.normal,
-      roughnessMap: textures.roughness,
-      metalnessMap: textures.metalness,
-      aoMap: textures.ao,
-      displacementMap: textures.height,
-      displacementScale: 0,
-      metalness: settings.metalness,
-      roughness: settings.roughness,
-      envMapIntensity: 1.0,
-    });
+    const updateMaterial = (material: THREE.MeshStandardMaterial) => {
+      material.map = textures.diffuse;
+      material.normalMap = textures.normal;
+      material.roughnessMap = textures.roughness;
+      material.metalnessMap = textures.metalness;
+      material.aoMap = textures.ao;
+      material.displacementMap = textures.height;
+      material.needsUpdate = true;
+    };
 
     // Apply texture repeat settings to all textures
     Object.values(textures).forEach((texture) => {
@@ -359,11 +357,15 @@
     });
 
     if (currentMesh instanceof THREE.Mesh) {
-      currentMesh.material = material;
+      if (currentMesh.material instanceof THREE.MeshStandardMaterial) {
+        updateMaterial(currentMesh.material);
+      }
     } else if ('children' in currentMesh) {
       currentMesh.children.forEach((child) => {
         if (child instanceof THREE.Mesh) {
-          child.material = material.clone();
+          if (child.material instanceof THREE.MeshStandardMaterial) {
+            updateMaterial(child.material);
+          }
         }
       });
     }
@@ -453,10 +455,42 @@
     noisePass.uniforms.intensity.value = settings.noise.intensity;
   }
 
+  export function updateMeshMaterial(
+    settings: Partial<MaterialSettings>
+  ): void {
+    if (!currentMesh) return;
+
+    const updateMaterial = (material: THREE.MeshStandardMaterial) => {
+      if (settings.roughness !== undefined)
+        material.roughness = settings.roughness;
+      if (settings.metalness !== undefined)
+        material.metalness = settings.metalness;
+      if (settings.envMapIntensity !== undefined)
+        material.envMapIntensity = settings.envMapIntensity;
+    };
+
+    if (
+      currentMesh instanceof THREE.Mesh &&
+      currentMesh.material instanceof THREE.MeshStandardMaterial
+    ) {
+      updateMaterial(currentMesh.material);
+    } else if ('children' in currentMesh) {
+      currentMesh.children.forEach((child) => {
+        if (
+          child instanceof THREE.Mesh &&
+          child.material instanceof THREE.MeshStandardMaterial
+        ) {
+          updateMaterial(child.material);
+        }
+      });
+    }
+  }
+
   onMount(async () => {
     setThreeSceneComponent({
       captureScene,
       handleMaterialChange,
+      updateMeshMaterial,
     });
     setMaterialChangeHandler(handleMaterialChange);
 
@@ -580,53 +614,21 @@
   });
 
   // Subscribe to SVG store changes
-  $: if ($svgStore.content && scene) {
+  $: if (
+    $svgStore.content &&
+    scene &&
+    $svgStore.content !== previousSVGContent
+  ) {
+    previousSVGContent = $svgStore.content;
     console.log('Creating SVG mesh from content:', $svgStore.content);
-    createSVGMesh($svgStore.content, false); // Don't preserve camera on initial load
+    createSVGMesh($svgStore.content, false);
 
     // Apply default material if available
     if ($materialStore.defaultMaterial) {
-      const textureLoader = new THREE.TextureLoader();
-      const textures: Record<string, THREE.Texture> = {};
-
-      // Load all textures for the default material
-      Promise.all(
-        Object.entries($materialStore.defaultMaterial.maps).map(
-          ([mapType, path]) => {
-            if (!path) return Promise.resolve();
-            return new Promise<void>((resolve, reject) => {
-              textureLoader.load(
-                path,
-                (texture) => {
-                  texture.wrapS = THREE.RepeatWrapping;
-                  texture.wrapT = THREE.RepeatWrapping;
-                  texture.repeat.set(
-                    $materialStore.settings.textureRepeat,
-                    $materialStore.settings.textureRepeat
-                  );
-
-                  if (mapType === 'normal') {
-                    texture.colorSpace = THREE.LinearSRGBColorSpace;
-                  } else if (mapType === 'diffuse') {
-                    texture.colorSpace = THREE.SRGBColorSpace;
-                  }
-
-                  textures[mapType] = texture;
-                  resolve();
-                },
-                undefined,
-                reject
-              );
-            });
-          }
-        )
-      )
-        .then(() => {
-          handleMaterialChange(textures, $materialStore.settings);
-        })
-        .catch((error) => {
-          console.error('Error loading default material textures:', error);
-        });
+      // Only load default material on initial creation
+      if (!currentMesh) {
+        loadDefaultMaterial();
+      }
     }
   }
 

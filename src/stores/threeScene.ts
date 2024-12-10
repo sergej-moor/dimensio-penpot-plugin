@@ -4,7 +4,11 @@ import type { CaptureOptions } from '../types';
 
 interface ThreeSceneComponent {
   captureScene: (options?: CaptureOptions) => Promise<Uint8Array>;
-  handleMaterialChange: (textures: Record<string, THREE.Texture>) => void;
+  handleMaterialChange: (
+    textures: Record<string, THREE.Texture>,
+    settings?: MaterialSettings
+  ) => void;
+  updateMeshMaterial?: (settings: Partial<MaterialSettings>) => void;
 }
 
 interface ThreeSceneState {

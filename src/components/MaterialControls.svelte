@@ -81,24 +81,28 @@
   function handleSettingChange(setting: keyof MaterialSettings, value: number) {
     updateMaterialSettings({ [setting]: value });
 
-    // If we have textures loaded, update them with new settings
+    // If we have textures loaded, only update the texture repeat if that's what changed
     if (selectedMaterial) {
-      const currentTextures = Object.entries(loadedTextures).reduce(
-        (acc, [key, texture]) => {
-          texture.repeat.set(
-            $materialStore.settings.textureRepeat,
-            $materialStore.settings.textureRepeat
-          );
-          acc[key] = texture;
-          return acc;
-        },
-        {} as Record<string, THREE.Texture>
-      );
+      if (setting === 'textureRepeat') {
+        // Only update texture repeats
+        const currentTextures = Object.entries(loadedTextures).reduce(
+          (acc, [key, texture]) => {
+            texture.repeat.set(value, value);
+            acc[key] = texture;
+            return acc;
+          },
+          {} as Record<string, THREE.Texture>
+        );
 
-      $threeSceneStore.component?.handleMaterialChange(
-        currentTextures,
-        $materialStore.settings
-      );
+        // Pass only the settings that changed
+        $threeSceneStore.component?.handleMaterialChange(currentTextures);
+      } else {
+        // For other settings, we can just update the material properties directly
+        // without recreating textures or triggering a full material change
+        $threeSceneStore.component?.updateMeshMaterial?.({
+          [setting]: value,
+        });
+      }
     }
   }
 
