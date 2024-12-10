@@ -634,7 +634,28 @@
 
   // Subscribe to object store changes to update the mesh
   $: if ($objectStore.settings && $svgStore.content && scene) {
+    // Store current materials before recreating mesh
+    const currentMaterials =
+      currentMesh instanceof THREE.Group
+        ? currentMesh.children.map((child) =>
+            child instanceof THREE.Mesh ? child.material : null
+          )
+        : currentMesh instanceof THREE.Mesh
+          ? [currentMesh.material]
+          : [];
+
     createSVGMesh($svgStore.content, true); // Preserve camera when updating settings
+
+    // Restore materials after mesh recreation
+    if (currentMesh instanceof THREE.Group) {
+      currentMesh.children.forEach((child, index) => {
+        if (child instanceof THREE.Mesh && currentMaterials[index]) {
+          child.material = currentMaterials[index];
+        }
+      });
+    } else if (currentMesh instanceof THREE.Mesh && currentMaterials[0]) {
+      currentMesh.material = currentMaterials[0];
+    }
   }
 
   // Add these subscriptions after the other subscriptions
