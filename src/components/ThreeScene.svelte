@@ -277,6 +277,8 @@
                   roughness: $materialStore.settings.roughness,
                   metalness: $materialStore.settings.metalness,
                   envMapIntensity: $materialStore.settings.envMapIntensity,
+                  displacementScale: 0,
+                  displacementBias: 0,
                 })
               : new THREE.MeshStandardMaterial({
                   color: new THREE.Color(groupData.color),
@@ -284,6 +286,8 @@
                   side: THREE.DoubleSide,
                   roughness: 0.7,
                   metalness: 0.3,
+                  displacementScale: 0,
+                  displacementBias: 0,
                 });
 
             // Apply textures if default material exists
@@ -859,12 +863,9 @@
     console.log('Creating SVG mesh from content:', $svgStore.content);
     createSVGMesh($svgStore.content, false);
 
-    // Apply default material if available
-    if ($materialStore.defaultMaterial) {
-      // Only load default material on initial creation
-      if (!currentMesh) {
-        loadDefaultMaterial();
-      }
+    // Force material update after creation
+    if (currentMesh && $materialStore.settings) {
+      updateMeshMaterial($materialStore.settings);
     }
   }
 
@@ -934,6 +935,53 @@
   // Subscribe to postprocessing store changes
   $: if (composer && $postProcessingStore.settings) {
     updatePostProcessingEffects($postProcessingStore.settings);
+  }
+
+  // Subscribe to material settings changes
+  $: if (currentMesh && $materialStore.settings) {
+    const updateMaterial = (material: THREE.MeshStandardMaterial) => {
+      if ($materialStore.settings.roughness !== undefined)
+        material.roughness = $materialStore.settings.roughness;
+      if ($materialStore.settings.metalness !== undefined)
+        material.metalness = $materialStore.settings.metalness;
+      if ($materialStore.settings.envMapIntensity !== undefined)
+        material.envMapIntensity = $materialStore.settings.envMapIntensity;
+      if (material.displacementMap) {
+        material.displacementScale = 0;
+        material.displacementBias = 0;
+      }
+    };
+
+    // Update all materials in the mesh
+    if (currentMesh instanceof THREE.Group) {
+      currentMesh.traverse((child) => {
+        if (
+          child instanceof THREE.Mesh &&
+          child.material instanceof THREE.MeshStandardMaterial
+        ) {
+          updateMaterial(child.material);
+        }
+      });
+    }
+
+    const currentTextures = Object.entries(
+      $materialStore.currentMaterial?.maps || {}
+    ).reduce(
+      (acc, [key, path]) => {
+        if (path && key in acc) {
+          const texture = acc[key];
+          texture.repeat.set(
+            $materialStore.settings.textureRepeat,
+            $materialStore.settings.textureRepeat
+          );
+        }
+        return acc;
+      },
+      {} as Record<string, THREE.Texture>
+    );
+
+    // Update material settings
+    updateMeshMaterial($materialStore.settings);
   }
 
   onDestroy(() => {
