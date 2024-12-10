@@ -1,116 +1,112 @@
 import * as THREE from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader';
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils';
 
-interface SVGParseResult {
-  shapes: Array<{
-    shape: THREE.Shape;
-    color: THREE.Color;
-  }>;
-  bounds: {
-    width: number;
-    height: number;
-    centerX: number;
-    centerY: number;
-  };
+interface ColorGroup {
+  initialColor: string;
+  userColor: string;
+  color: string;
+  paths: {
+    id: number;
+    data: THREE.ShapePath;
+  }[];
 }
 
-function parseColor(color: string | null): THREE.Color {
-  if (!color || color === 'none') {
-    return new THREE.Color(0x000000);
-  }
-  return new THREE.Color(color);
-}
-
-export function parseSVGPaths(svgString: string): SVGParseResult {
-  console.log('Parsing SVG string:', svgString);
-
-  // Create a temporary container for the SVG
-  const container = document.createElement('div');
-  container.innerHTML = svgString;
-  const svgElement = container.querySelector('svg');
-  if (!svgElement) {
-    throw new Error('No SVG element found');
-  }
-
-  // Get SVG dimensions
-  const viewBox =
-    svgElement?.getAttribute('viewBox')?.split(' ').map(Number) || [];
-  const width =
-    viewBox[2] || parseFloat(svgElement?.getAttribute('width') || '100');
-  const height =
-    viewBox[3] || parseFloat(svgElement?.getAttribute('height') || '100');
-
-  // Use Three.js SVGLoader
+export function parseSVGPaths(svgContent: string) {
   const loader = new SVGLoader();
-  const svgData = loader.parse(svgString);
-  const shapes: Array<{ shape: THREE.Shape; color: THREE.Color }> = [];
+  const svgData = loader.parse(svgContent);
+  const paths = svgData.paths;
 
-  // Process each path
-  svgData.paths.forEach((path) => {
-    // Get the fill color
-    const fillColor = parseColor(path.color);
+  // Group paths by color
+  const colorGroups: Record<string, ColorGroup> = {};
 
-    // Convert subpaths to shapes
-    path.subPaths.forEach((subPath) => {
-      const shape = new THREE.Shape();
+  paths.forEach((path, index) => {
+    // Check if the path is inside a <defs> element
+    if (isNodeInDefs(path.userData?.node)) return;
 
-      // Get the points from the path
-      const points = subPath.getPoints();
+    let fillColor = path.userData?.style.fill || '#FFFFFF';
+    if (!fillColor || fillColor === 'none') {
+      fillColor = '#FFFFFF';
+    }
 
-      if (points.length > 0) {
-        // Start the shape at the first point
-        shape.moveTo(points[0].x, points[0].y);
-
-        // Add the remaining points
-        for (let i = 1; i < points.length; i++) {
-          shape.lineTo(points[i].x, points[i].y);
-        }
-
-        // Only close the path if it's meant to be closed
-        // Check if the path has a fill or if it's explicitly marked as closed
-        const shouldClose =
-          path.userData?.style?.fill !== 'none' &&
-          path.userData?.style?.fill !== undefined;
-        if (shouldClose) {
-          shape.closePath();
-        }
-
-        shapes.push({ shape, color: fillColor });
+    if (fillColor.startsWith('rgb')) {
+      try {
+        fillColor = rgbStringToHex(fillColor);
+      } catch (e) {
+        console.error('Error converting color:', e);
+        fillColor = '#FFFFFF';
       }
+    }
+
+    fillColor = fillColor.toLowerCase();
+    const groupKey = `${fillColor}`;
+
+    if (!colorGroups[groupKey]) {
+      colorGroups[groupKey] = {
+        initialColor: fillColor,
+        userColor: fillColor,
+        color: fillColor,
+        paths: [],
+      };
+    }
+
+    colorGroups[groupKey].paths.push({
+      id: index,
+      data: path,
     });
   });
 
-  // Calculate bounds
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
+  // Create merged geometries for each color group
+  const shapes: { shape: THREE.Shape; color: THREE.Color }[] = [];
+  const bounds = new THREE.Box2();
 
-  shapes.forEach(({ shape }) => {
-    shape.curves.forEach((curve) => {
-      const points = curve.getPoints(10);
-      points.forEach((point) => {
-        minX = Math.min(minX, point.x);
-        minY = Math.min(minY, point.y);
-        maxX = Math.max(maxX, point.x);
-        maxY = Math.max(maxY, point.y);
+  Object.entries(colorGroups).forEach(([_, group]) => {
+    const { paths, color } = group;
+
+    paths.forEach(({ data: path }) => {
+      const shapesFromPath = path.toShapes(true);
+      shapesFromPath.forEach((shape) => {
+        shapes.push({
+          shape,
+          color: new THREE.Color(color),
+        });
+
+        // Update bounds
+        const points = shape.getPoints();
+        points.forEach((point) => bounds.expandByPoint(point));
       });
     });
   });
 
-  // If no valid bounds were found, use the SVG dimensions
-  if (!isFinite(minX)) minX = 0;
-  if (!isFinite(minY)) minY = 0;
-  if (!isFinite(maxX)) maxX = width;
-  if (!isFinite(maxY)) maxY = height;
-
   return {
     shapes,
     bounds: {
-      width: width || maxX - minX,
-      height: height || maxY - minY,
-      centerX: (minX + maxX) / 2,
-      centerY: (minY + maxY) / 2,
+      width: bounds.max.x - bounds.min.x,
+      height: bounds.max.y - bounds.min.y,
+      centerX: (bounds.max.x + bounds.min.x) / 2,
+      centerY: (bounds.max.y + bounds.min.y) / 2,
     },
+    colorGroups,
   };
+}
+
+function isNodeInDefs(node: any): boolean {
+  while (node) {
+    if (node.nodeName.toLowerCase() === 'defs') {
+      return true;
+    }
+    node = node.parentNode;
+  }
+  return false;
+}
+
+function rgbStringToHex(rgb: string): string {
+  const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+  if (!match) throw new Error('Invalid RGB string');
+
+  const r = parseInt(match[1]);
+  const g = parseInt(match[2]);
+  const b = parseInt(match[3]);
+
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }

@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import * as THREE from 'three';
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+  import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils';
   import { svgStore } from '../stores/svg';
   import { parseSVGPaths } from '../utils/svgParser';
   import type { CaptureOptions } from '../types';
@@ -168,7 +169,7 @@
     }
 
     try {
-      const { shapes, bounds } = parseSVGPaths(svgContent);
+      const { shapes, bounds, colorGroups } = parseSVGPaths(svgContent);
       console.log('Parsed SVG:', { shapes, bounds });
 
       if (shapes.length === 0) {
@@ -187,24 +188,24 @@
       // Create a group to hold all shape meshes
       const group = new THREE.Group();
 
-      const meshes: THREE.Mesh[] = [];
-
-      shapes.forEach(({ shape, color }) => {
-        const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-        const material = new THREE.MeshStandardMaterial({
-          color: color,
-          flatShading: true,
-          side: THREE.DoubleSide,
-          roughness: 0.7,
-          metalness: 0.3,
+      // Create meshes by color group
+      Object.entries(colorGroups).forEach(([color, groupData]) => {
+        groupData.paths.forEach(({ data: path }) => {
+          const shapes = path.toShapes(true);
+          shapes.forEach((shape) => {
+            const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+            const material = new THREE.MeshStandardMaterial({
+              color: new THREE.Color(groupData.color),
+              flatShading: true,
+              side: THREE.DoubleSide,
+              roughness: 0.7,
+              metalness: 0.3,
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            group.add(mesh);
+          });
         });
-        const mesh = new THREE.Mesh(geometry, material);
-        meshes.push(mesh);
-        group.add(mesh);
       });
-
-      // Create color groups after creating meshes
-      createColorGroups(meshes);
 
       // Update scale based on object settings
       const targetWidth = 10; // Target width in units
