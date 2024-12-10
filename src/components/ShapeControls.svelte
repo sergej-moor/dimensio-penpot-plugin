@@ -27,7 +27,7 @@
 </script>
 
 <div class="space-y-4">
-  <h2 class="text-lg font-semibold">Shape Groups</h2>
+  <h3 class="text-sm font-medium">Shape Settings</h3>
   {#each $shapeStore.groups as group (group.id)}
     <div class="p-4 border border-gray-100 rounded-lg">
       <div class="flex items-center gap-4 mb-2">

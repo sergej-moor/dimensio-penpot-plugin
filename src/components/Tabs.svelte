@@ -52,7 +52,6 @@
   }
 
   :global(main[data-theme='light']) button {
-    background-color: var(--la-primary);
     color: var(--lf-primary);
   }
   :global(main[data-theme='light']) button:hover:not(.active):not(.disabled) {

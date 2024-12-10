@@ -579,31 +579,43 @@
 
     composer = new EffectComposer(renderer, renderTarget);
 
-    // Add render pass
+    // Add render pass first
     const renderPass = new RenderPass(scene, camera);
     renderPass.clear = true;
     renderPass.clearAlpha = 0;
     composer.addPass(renderPass);
 
-    // Add pixelation pass first
+    // Initialize all passes first
     pixelationPass = new ShaderPass(pixelationShader);
-    pixelationPass.renderToScreen = false;
-    composer.addPass(pixelationPass);
-
-    // Add noise pass
     noisePass = new ShaderPass(noiseShader);
-    noisePass.renderToScreen = false;
-    composer.addPass(noisePass);
-
-    // Add edge pass
     edgePass = new ShaderPass(edgeShader);
-    edgePass.renderToScreen = false;
-    composer.addPass(edgePass);
-
-    // Add color pass last (before output)
     colorPass = new ShaderPass(colorAdjustmentShader);
-    colorPass.renderToScreen = false;
-    composer.addPass(colorPass);
+
+    // Add passes based on effect order
+    const passes = $postProcessingStore.settings.effects
+      .sort((a, b) => a.order - b.order)
+      .map((effect) => {
+        switch (effect.type) {
+          case 'pixelation':
+            return pixelationPass;
+          case 'noise':
+            return noisePass;
+          case 'edge':
+            return edgePass;
+          case 'color':
+            return colorPass;
+          default:
+            return null;
+        }
+      })
+      .filter((pass) => pass !== null);
+
+    passes.forEach((pass) => {
+      if (pass) {
+        pass.renderToScreen = false;
+        composer.addPass(pass);
+      }
+    });
 
     // Output pass should still be last
     const outputPass = new OutputPass();
@@ -614,24 +626,41 @@
   function updatePostProcessingEffects(settings: PostProcessingSettings) {
     if (!noisePass || !edgePass || !colorPass || !pixelationPass) return;
 
+    // Find each effect in the effects array
+    const pixelationEffect = settings.effects.find(
+      (e) => e.type === 'pixelation'
+    );
+    const noiseEffect = settings.effects.find((e) => e.type === 'noise');
+    const edgeEffect = settings.effects.find((e) => e.type === 'edge');
+    const colorEffect = settings.effects.find((e) => e.type === 'color');
+
     // Update pixelation
-    pixelationPass.enabled = settings.pixelation.enabled;
-    pixelationPass.uniforms.pixelSize.value = settings.pixelation.pixelSize;
+    if (pixelationEffect) {
+      pixelationPass.enabled = pixelationEffect.settings.enabled;
+      pixelationPass.uniforms.pixelSize.value =
+        pixelationEffect.settings.pixelSize;
+    }
 
     // Update noise
-    noisePass.enabled = settings.noise.enabled;
-    noisePass.uniforms.intensity.value = settings.noise.intensity;
+    if (noiseEffect) {
+      noisePass.enabled = noiseEffect.settings.enabled;
+      noisePass.uniforms.intensity.value = noiseEffect.settings.intensity;
+    }
 
     // Update edge detection
-    edgePass.enabled = settings.edge.enabled;
-    edgePass.uniforms.intensity.value = settings.edge.intensity;
-    edgePass.uniforms.threshold.value = settings.edge.threshold;
+    if (edgeEffect) {
+      edgePass.enabled = edgeEffect.settings.enabled;
+      edgePass.uniforms.intensity.value = edgeEffect.settings.intensity;
+      edgePass.uniforms.threshold.value = edgeEffect.settings.threshold;
+    }
 
     // Update color adjustment
-    colorPass.enabled = settings.color.enabled;
-    colorPass.uniforms.brightness.value = settings.color.brightness;
-    colorPass.uniforms.saturation.value = settings.color.saturation;
-    colorPass.uniforms.contrast.value = settings.color.contrast;
+    if (colorEffect) {
+      colorPass.enabled = colorEffect.settings.enabled;
+      colorPass.uniforms.brightness.value = colorEffect.settings.brightness;
+      colorPass.uniforms.saturation.value = colorEffect.settings.saturation;
+      colorPass.uniforms.contrast.value = colorEffect.settings.contrast;
+    }
   }
 
   export function updateMeshMaterial(

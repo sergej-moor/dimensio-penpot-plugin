@@ -234,6 +234,7 @@
   <Tabs {tabs} bind:activeTab>
     {#if activeTab === 'file'}
       <div class="flex flex-col gap-2">
+        <h3 class="text-sm font-medium">Import Settings</h3>
         <button
           on:click={() => document.getElementById('svgInput').click()}
           disabled={isProcessing}

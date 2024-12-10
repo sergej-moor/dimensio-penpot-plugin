@@ -2,287 +2,236 @@
   import {
     postProcessingStore,
     updatePostProcessingSettings,
+    moveEffect,
+    type PostProcessingEffect,
   } from '../stores/postprocessing';
   import { tooltip } from '../actions/tooltip';
+  import { ChevronDown, ChevronUp } from 'lucide-svelte';
 
-  function handleNoiseToggle(enabled: boolean) {
-    updatePostProcessingSettings({
-      noise: { ...$postProcessingStore.settings.noise, enabled },
-    });
+  function handleMove(index: number, direction: 'up' | 'down') {
+    moveEffect(index, direction);
   }
 
-  function handleNoiseSettingChange(
-    setting: keyof typeof $postProcessingStore.settings.noise,
+  function handleEffectToggle(effect: PostProcessingEffect, enabled: boolean) {
+    const updatedEffects = $postProcessingStore.settings.effects.map((e) =>
+      e.order === effect.order
+        ? { ...e, settings: { ...e.settings, enabled } }
+        : e
+    );
+    updatePostProcessingSettings({ effects: updatedEffects });
+  }
+
+  function handleEffectSettingChange(
+    effect: PostProcessingEffect,
+    setting: string,
     value: number
   ) {
-    updatePostProcessingSettings({
-      noise: { ...$postProcessingStore.settings.noise, [setting]: value },
-    });
-  }
-
-  function handleEdgeSettingChange(
-    setting: keyof typeof $postProcessingStore.settings.edge,
-    value: number
-  ) {
-    updatePostProcessingSettings({
-      edge: { ...$postProcessingStore.settings.edge, [setting]: value },
-    });
-  }
-
-  function handleColorSettingChange(
-    setting: keyof typeof $postProcessingStore.settings.color,
-    value: number
-  ) {
-    updatePostProcessingSettings({
-      color: { ...$postProcessingStore.settings.color, [setting]: value },
-    });
-  }
-
-  function handleVignetteSettingChange(
-    setting: keyof typeof $postProcessingStore.settings.vignette,
-    value: number
-  ) {
-    updatePostProcessingSettings({
-      vignette: { ...$postProcessingStore.settings.vignette, [setting]: value },
-    });
-  }
-
-  function handleEdgeToggle(enabled: boolean) {
-    updatePostProcessingSettings({
-      edge: { ...$postProcessingStore.settings.edge, enabled },
-    });
-  }
-
-  function handleColorToggle(enabled: boolean) {
-    updatePostProcessingSettings({
-      color: { ...$postProcessingStore.settings.color, enabled },
-    });
-  }
-
-  function handleVignetteToggle(enabled: boolean) {
-    updatePostProcessingSettings({
-      vignette: { ...$postProcessingStore.settings.vignette, enabled },
-    });
-  }
-
-  function handlePixelationToggle(enabled: boolean) {
-    updatePostProcessingSettings({
-      pixelation: { ...$postProcessingStore.settings.pixelation, enabled },
-    });
-  }
-
-  function handlePixelationSettingChange(value: number) {
-    updatePostProcessingSettings({
-      pixelation: {
-        ...$postProcessingStore.settings.pixelation,
-        pixelSize: value,
-      },
-    });
+    const updatedEffects = $postProcessingStore.settings.effects.map((e) =>
+      e.order === effect.order
+        ? { ...e, settings: { ...e.settings, [setting]: value } }
+        : e
+    );
+    updatePostProcessingSettings({ effects: updatedEffects });
   }
 </script>
 
 <div class="flex flex-col gap-4">
-  <div class="flex flex-col gap-2">
-    <div class="flex items-center justify-between">
-      <h3 class="text-sm font-medium">Pixelation</h3>
-      <label class="relative inline-flex items-center cursor-pointer">
-        <input
-          type="checkbox"
-          class="sr-only peer"
-          checked={$postProcessingStore.settings.pixelation.enabled}
-          on:change={(e) => handlePixelationToggle(e.currentTarget.checked)}
-        />
-        <div
-          class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-        />
-      </label>
-    </div>
-
-    {#if $postProcessingStore.settings.pixelation.enabled}
-      <div class="flex flex-col gap-2 pl-4">
-        <label class="text-sm flex justify-between">
-          Pixel Size: {$postProcessingStore.settings.pixelation.pixelSize}
+  <h3 class="text-sm font-medium">Post Processing Settings</h3>
+  {#each $postProcessingStore.settings.effects.sort((a, b) => a.order - b.order) as effect, index}
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="flex flex-col gap-1">
+            <button
+              class="p-0 w-6 h-6 disabled:opacity-50"
+              disabled={index === 0}
+              on:click={() => handleMove(index, 'up')}
+              use:tooltip={{ text: 'Move up', position: 'right' }}
+            >
+              <ChevronUp class="w-6 h-6 p-0 -mt-1" />
+            </button>
+            <button
+              class="p-0 w-6 h-6 disabled:opacity-50"
+              disabled={index ===
+                $postProcessingStore.settings.effects.length - 1}
+              on:click={() => handleMove(index, 'down')}
+              use:tooltip={{ text: 'Move down', position: 'right' }}
+            >
+              <ChevronDown class="w-6 h-6  p-0 -mb-1" />
+            </button>
+          </div>
+          <h3 class="text-sm font-medium capitalize">{effect.type}</h3>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
           <input
-            type="range"
-            min="2"
-            max="32"
-            step="1"
-            value={$postProcessingStore.settings.pixelation.pixelSize}
-            on:input={(e) =>
-              handlePixelationSettingChange(parseInt(e.currentTarget.value))}
-            class="flex-1 ml-2"
+            type="checkbox"
+            class="sr-only peer"
+            checked={effect.settings.enabled}
+            on:change={(e) =>
+              handleEffectToggle(effect, e.currentTarget.checked)}
           />
+          <div class="toggle-switch"></div>
         </label>
       </div>
-    {/if}
-  </div>
 
-  <div class="flex flex-col gap-2">
-    <div class="flex items-center justify-between">
-      <h3 class="text-sm font-medium">Noise Effect</h3>
-      <label class="relative inline-flex items-center cursor-pointer">
-        <input
-          type="checkbox"
-          class="sr-only peer"
-          checked={$postProcessingStore.settings.noise.enabled}
-          on:change={(e) => handleNoiseToggle(e.currentTarget.checked)}
-        />
-        <div
-          class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-        ></div>
-      </label>
+      {#if effect.settings.enabled}
+        <div class="flex flex-col gap-2 pl-4">
+          {#if effect.type === 'pixelation'}
+            <label class="text-sm flex justify-between">
+              Size: {effect.settings.pixelSize}
+              <input
+                type="range"
+                min="2"
+                max="32"
+                step="1"
+                value={effect.settings.pixelSize}
+                on:input={(e) =>
+                  handleEffectSettingChange(
+                    effect,
+                    'pixelSize',
+                    parseInt(e.currentTarget.value)
+                  )}
+                class="flex-1 ml-2"
+              />
+            </label>
+          {:else if effect.type === 'noise'}
+            <label class="text-sm flex justify-between">
+              Intensity: {effect.settings.intensity.toFixed(2)}
+              <input
+                type="range"
+                min="0"
+                max="5"
+                step="0.1"
+                value={effect.settings.intensity}
+                on:input={(e) =>
+                  handleEffectSettingChange(
+                    effect,
+                    'intensity',
+                    parseFloat(e.currentTarget.value)
+                  )}
+                class="flex-1 ml-2"
+              />
+            </label>
+          {:else if effect.type === 'edge'}
+            <label class="text-sm flex justify-between">
+              Intensity: {effect.settings.intensity.toFixed(2)}
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.1"
+                value={effect.settings.intensity}
+                on:input={(e) =>
+                  handleEffectSettingChange(
+                    effect,
+                    'intensity',
+                    parseFloat(e.currentTarget.value)
+                  )}
+                class="flex-1 ml-2"
+              />
+            </label>
+            <label class="text-sm flex justify-between">
+              Threshold: {effect.settings.threshold.toFixed(2)}
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={effect.settings.threshold}
+                on:input={(e) =>
+                  handleEffectSettingChange(
+                    effect,
+                    'threshold',
+                    parseFloat(e.currentTarget.value)
+                  )}
+                class="flex-1 ml-2"
+              />
+            </label>
+          {:else if effect.type === 'color'}
+            <label class="text-sm flex justify-between">
+              Brightness: {effect.settings.brightness.toFixed(2)}
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.1"
+                value={effect.settings.brightness}
+                on:input={(e) =>
+                  handleEffectSettingChange(
+                    effect,
+                    'brightness',
+                    parseFloat(e.currentTarget.value)
+                  )}
+                class="flex-1 ml-2"
+              />
+            </label>
+            <label class="text-sm flex justify-between">
+              Saturation: {effect.settings.saturation.toFixed(2)}
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.1"
+                value={effect.settings.saturation}
+                on:input={(e) =>
+                  handleEffectSettingChange(
+                    effect,
+                    'saturation',
+                    parseFloat(e.currentTarget.value)
+                  )}
+                class="flex-1 ml-2"
+              />
+            </label>
+            <label class="text-sm flex justify-between">
+              Contrast: {effect.settings.contrast.toFixed(2)}
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.1"
+                value={effect.settings.contrast}
+                on:input={(e) =>
+                  handleEffectSettingChange(
+                    effect,
+                    'contrast',
+                    parseFloat(e.currentTarget.value)
+                  )}
+                class="flex-1 ml-2"
+              />
+            </label>
+          {/if}
+        </div>
+      {/if}
     </div>
-
-    {#if $postProcessingStore.settings.noise.enabled}
-      <div class="flex flex-col gap-2 pl-4">
-        <label class="text-sm flex justify-between">
-          Intensity: {$postProcessingStore.settings.noise.intensity.toFixed(2)}
-          <input
-            type="range"
-            min="0"
-            max="5"
-            step="0.1"
-            value={$postProcessingStore.settings.noise.intensity}
-            on:input={(e) =>
-              handleNoiseSettingChange(
-                'intensity',
-                parseFloat(e.currentTarget.value)
-              )}
-            class="flex-1 ml-2"
-          />
-        </label>
-      </div>
-    {/if}
-  </div>
-
-  <div class="flex flex-col gap-2">
-    <div class="flex items-center justify-between">
-      <h3 class="text-sm font-medium">Edge Detection</h3>
-      <label class="relative inline-flex items-center cursor-pointer">
-        <input
-          type="checkbox"
-          class="sr-only peer"
-          checked={$postProcessingStore.settings.edge.enabled}
-          on:change={(e) => handleEdgeToggle(e.currentTarget.checked)}
-        />
-        <div
-          class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-        />
-      </label>
-    </div>
-
-    {#if $postProcessingStore.settings.edge.enabled}
-      <div class="flex flex-col gap-2 pl-4">
-        <label class="text-sm flex justify-between">
-          Intensity: {$postProcessingStore.settings.edge.intensity.toFixed(2)}
-          <input
-            type="range"
-            min="0"
-            max="2"
-            step="0.1"
-            value={$postProcessingStore.settings.edge.intensity}
-            on:input={(e) =>
-              handleEdgeSettingChange(
-                'intensity',
-                parseFloat(e.currentTarget.value)
-              )}
-            class="flex-1 ml-2"
-          />
-        </label>
-
-        <label class="text-sm flex justify-between">
-          Threshold: {$postProcessingStore.settings.edge.threshold.toFixed(2)}
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={$postProcessingStore.settings.edge.threshold}
-            on:input={(e) =>
-              handleEdgeSettingChange(
-                'threshold',
-                parseFloat(e.currentTarget.value)
-              )}
-            class="flex-1 ml-2"
-          />
-        </label>
-      </div>
-    {/if}
-  </div>
-
-  <div class="flex flex-col gap-2">
-    <div class="flex items-center justify-between">
-      <h3 class="text-sm font-medium">Color Adjustment</h3>
-      <label class="relative inline-flex items-center cursor-pointer">
-        <input
-          type="checkbox"
-          class="sr-only peer"
-          checked={$postProcessingStore.settings.color.enabled}
-          on:change={(e) => handleColorToggle(e.currentTarget.checked)}
-        />
-        <div
-          class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-        />
-      </label>
-    </div>
-
-    {#if $postProcessingStore.settings.color.enabled}
-      <div class="flex flex-col gap-2 pl-4">
-        <label class="text-sm flex justify-between">
-          Brightness: {$postProcessingStore.settings.color.brightness.toFixed(
-            2
-          )}
-          <input
-            type="range"
-            min="0"
-            max="2"
-            step="0.1"
-            value={$postProcessingStore.settings.color.brightness}
-            on:input={(e) =>
-              handleColorSettingChange(
-                'brightness',
-                parseFloat(e.currentTarget.value)
-              )}
-            class="flex-1 ml-2"
-          />
-        </label>
-
-        <label class="text-sm flex justify-between">
-          Saturation: {$postProcessingStore.settings.color.saturation.toFixed(
-            2
-          )}
-          <input
-            type="range"
-            min="0"
-            max="2"
-            step="0.1"
-            value={$postProcessingStore.settings.color.saturation}
-            on:input={(e) =>
-              handleColorSettingChange(
-                'saturation',
-                parseFloat(e.currentTarget.value)
-              )}
-            class="flex-1 ml-2"
-          />
-        </label>
-
-        <label class="text-sm flex justify-between">
-          Contrast: {$postProcessingStore.settings.color.contrast.toFixed(2)}
-          <input
-            type="range"
-            min="0"
-            max="2"
-            step="0.1"
-            value={$postProcessingStore.settings.color.contrast}
-            on:input={(e) =>
-              handleColorSettingChange(
-                'contrast',
-                parseFloat(e.currentTarget.value)
-              )}
-            class="flex-1 ml-2"
-          />
-        </label>
-      </div>
-    {/if}
-  </div>
+  {/each}
 </div>
+
+<style>
+  .toggle-switch {
+    @apply w-9 h-5 rounded-full relative;
+    background-color: var(--lb-tertiary);
+    transition: background-color 0.2s ease;
+  }
+
+  .toggle-switch::after {
+    content: '';
+    @apply absolute top-[2px] left-[2px] w-4 h-4 rounded-full bg-white;
+    transition: transform 0.2s ease;
+  }
+
+  :global([data-theme='dark']) .toggle-switch {
+    background-color: var(--db-tertiary);
+  }
+
+  :global(.peer:checked) + .toggle-switch {
+    background-color: var(--la-primary);
+  }
+
+  :global([data-theme='dark']) :global(.peer:checked) + .toggle-switch {
+    background-color: var(--da-primary);
+  }
+
+  :global(.peer:checked) + .toggle-switch::after {
+    transform: translateX(calc(100% + 2px));
+  }
+</style>

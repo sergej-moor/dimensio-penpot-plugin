@@ -117,6 +117,7 @@
 </script>
 
 <div class="mt-4 flex flex-col gap-4">
+  <h3 class="text-sm font-medium">Material Settings</h3>
   <div class="flex flex-col gap-2">
     <label class="text-sm flex justify-between">
       Texture Repeat: {$materialStore.settings.textureRepeat.toFixed(3)}
