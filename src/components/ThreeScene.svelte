@@ -838,7 +838,6 @@
     $svgStore.content !== previousSVGContent
   ) {
     previousSVGContent = $svgStore.content;
-    s;
     createSVGMesh($svgStore.content, false);
 
     // Force material update after creation
