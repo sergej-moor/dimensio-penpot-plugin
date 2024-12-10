@@ -277,7 +277,7 @@
             maxWidth: 'max-w-[300px]',
           }}
         >
-          Import Selection as SVG
+          Import selected SVG from Penpot
         </button>
       </div>
     {:else if activeTab === 'exports'}
