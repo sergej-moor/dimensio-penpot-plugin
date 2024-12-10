@@ -20,6 +20,7 @@ export interface MaterialSettings {
   metalness: number;
   roughness: number;
   envMapIntensity: number;
+  displacementScale: number;
 }
 
 export const DEFAULT_MATERIAL_SETTINGS: MaterialSettings = {
@@ -27,6 +28,7 @@ export const DEFAULT_MATERIAL_SETTINGS: MaterialSettings = {
   metalness: 1,
   roughness: 0,
   envMapIntensity: 1.0,
+  displacementScale: 0.0,
 };
 
 export interface MaterialState {

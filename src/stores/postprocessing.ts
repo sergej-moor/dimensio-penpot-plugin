@@ -20,12 +20,6 @@ export interface PostProcessingSettings {
     saturation: number;
     contrast: number;
   };
-  dotScreen: {
-    enabled: boolean;
-    size: number;
-    intensity: number;
-    spacing: number;
-  };
 }
 
 const DEFAULT_SETTINGS: PostProcessingSettings = {
@@ -47,12 +41,6 @@ const DEFAULT_SETTINGS: PostProcessingSettings = {
     brightness: 1.0,
     saturation: 1.0,
     contrast: 1.0,
-  },
-  dotScreen: {
-    enabled: false,
-    size: 3,
-    intensity: 1.0,
-    spacing: 140.0,
   },
 };
 

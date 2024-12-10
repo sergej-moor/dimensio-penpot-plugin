@@ -52,7 +52,6 @@
   let colorPass: ShaderPass;
   let pixelationPass: ShaderPass;
   let previousSVGContent: string | null = null;
-  let dotScreenPass: ShaderPass;
 
   // Update noise shader
   const noiseShader = {
@@ -203,49 +202,6 @@
     `,
   };
 
-  const dotScreenShader = {
-    uniforms: {
-      tDiffuse: { value: null },
-      size: { value: 3.0 },
-      intensity: { value: 1.0 },
-      spacing: { value: 140.0 },
-      resolution: {
-        value: new THREE.Vector2(window.innerWidth, window.innerHeight),
-      },
-    },
-    fragmentShader: `
-      uniform sampler2D tDiffuse;
-      uniform float size;
-      uniform float intensity;
-      uniform float spacing;
-      uniform vec2 resolution;
-      varying vec2 vUv;
-      
-      void main() {
-        vec4 color = texture2D(tDiffuse, vUv);
-        
-        if (color.a == 0.0) {
-          gl_FragColor = color;
-          return;
-        }
-        
-        // Create rotated grid pattern
-        vec2 coord = gl_FragCoord.xy / resolution.y * spacing;
-        coord = mat2(0.707, -0.707, 0.707, 0.707) * coord;
-        vec2 grid = fract(coord);
-        
-        float dotSize = size * 0.5;
-        float pattern = 1.0 - smoothstep(0.0, dotSize, length(grid - 0.5));
-        
-        // Create halftone effect
-        float brightness = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-        // Enhance original colors with dot pattern
-        vec3 enhancedColor = color.rgb * (1.0 + pattern * intensity * (1.0 - brightness));
-        gl_FragColor = vec4(enhancedColor, color.a);
-      }
-    `,
-  };
-
   function createDefaultCube() {
     const geometry = new THREE.BoxGeometry();
     const material = new THREE.MeshStandardMaterial({
@@ -348,6 +304,7 @@
             mesh.visible = true;
             mesh.frustumCulled = false;
             mesh.renderOrder = meshes.length;
+
             meshes.push(mesh);
             group.add(mesh);
           });
@@ -633,11 +590,6 @@
     pixelationPass.renderToScreen = false;
     composer.addPass(pixelationPass);
 
-    // Add dot screen pass after pixelation but before noise
-    dotScreenPass = new ShaderPass(dotScreenShader);
-    dotScreenPass.renderToScreen = false;
-    composer.addPass(dotScreenPass);
-
     // Add noise pass
     noisePass = new ShaderPass(noiseShader);
     noisePass.renderToScreen = false;
@@ -665,12 +617,6 @@
     // Update pixelation
     pixelationPass.enabled = settings.pixelation.enabled;
     pixelationPass.uniforms.pixelSize.value = settings.pixelation.pixelSize;
-
-    // Update dot screen
-    dotScreenPass.enabled = settings.dotScreen.enabled;
-    dotScreenPass.uniforms.size.value = settings.dotScreen.size;
-    dotScreenPass.uniforms.intensity.value = settings.dotScreen.intensity;
-    dotScreenPass.uniforms.spacing.value = settings.dotScreen.spacing;
 
     // Update noise
     noisePass.enabled = settings.noise.enabled;
@@ -700,6 +646,10 @@
         material.metalness = settings.metalness;
       if (settings.envMapIntensity !== undefined)
         material.envMapIntensity = settings.envMapIntensity;
+      if (material.displacementMap) {
+        material.displacementScale = 0;
+        material.displacementBias = 0;
+      }
     };
 
     if (
