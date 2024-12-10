@@ -256,6 +256,30 @@
           on:change={handleSVGUpload}
         />
       </div>
+      <div class="flex flex-col gap-2 mt-8">
+        <div class="text-sm text-gray-600 dark:text-gray-400 px-2">
+          {#if $selection.name}
+            Selected: {$selection.name}
+          {:else}
+            Selection: No element selected
+          {/if}
+        </div>
+        <button
+          on:click={() => {
+            window.parent.postMessage({ type: 'export-selection-as-svg' }, '*');
+          }}
+          disabled={!$selection.name}
+          data-appearance="secondary"
+          class="flex-1 flex justify-center gap-2 items-center"
+          use:tooltip={{
+            text: 'Export current selection as SVG',
+            position: 'bottom',
+            maxWidth: 'max-w-[300px]',
+          }}
+        >
+          Import Selection as SVG
+        </button>
+      </div>
     {:else if activeTab === 'exports'}
       <div class="flex flex-col gap-2">
         <h3 class="text-sm font-medium">Export Resolution</h3>

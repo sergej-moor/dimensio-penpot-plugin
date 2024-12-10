@@ -195,6 +195,23 @@ async function handleSelectionChange(): Promise<void> {
 
 async function handlePluginMessage(message: PluginMessage): Promise<void> {
   switch (message.type) {
+    case 'export-selection-as-svg':
+      if (penpot.selection[0]) {
+        try {
+          const svgData = await penpot.selection[0].export({ type: 'svg' });
+          sendMessage({
+            type: 'svg-export-complete',
+            svgData: new Uint8Array(svgData),
+          });
+        } catch (error) {
+          console.error('Error exporting SVG:', error);
+          sendMessage({
+            type: 'export-error',
+            error: 'Failed to export selection as SVG',
+          });
+        }
+      }
+      break;
     case 'update-image-fill':
       if (penpot.selection[0]) {
         await handleImageFillUpdate(penpot.selection[0], message);

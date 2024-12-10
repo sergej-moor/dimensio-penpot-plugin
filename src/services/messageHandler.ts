@@ -9,6 +9,7 @@ import {
 } from '../stores/selection';
 import { selection } from '../stores/selection';
 import type { SelectionState } from '../types';
+import { setSVGContent } from '../stores/svg';
 
 export class MessageHandler {
   static handle(event: MessageEvent<PluginMessage>): void {
@@ -54,6 +55,14 @@ export class MessageHandler {
             ...state,
             error: 'Unable to export image. Please try again.',
           }));
+          break;
+
+        case 'svg-export-complete':
+          // Convert Uint8Array to string to see SVG content
+          const decoder = new TextDecoder();
+          const svgString = decoder.decode(message.svgData);
+          // Load the exported SVG into the scene
+          setSVGContent(svgString);
           break;
 
         default:
