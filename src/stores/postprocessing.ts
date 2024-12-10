@@ -5,12 +5,6 @@ export interface PostProcessingSettings {
     enabled: boolean;
     pixelSize: number;
   };
-  bloom: {
-    enabled: boolean;
-    intensity: number;
-    threshold: number;
-    radius: number;
-  };
   noise: {
     enabled: boolean;
     intensity: number;
@@ -26,10 +20,11 @@ export interface PostProcessingSettings {
     saturation: number;
     contrast: number;
   };
-  vignette: {
+  dotScreen: {
     enabled: boolean;
-    darkness: number;
-    offset: number;
+    size: number;
+    intensity: number;
+    spacing: number;
   };
 }
 
@@ -38,15 +33,9 @@ const DEFAULT_SETTINGS: PostProcessingSettings = {
     enabled: false,
     pixelSize: 8,
   },
-  bloom: {
-    enabled: false,
-    intensity: 1,
-    threshold: 0.5,
-    radius: 0.5,
-  },
   noise: {
     enabled: false,
-    intensity: 0.5,
+    intensity: 1.0,
   },
   edge: {
     enabled: false,
@@ -59,10 +48,11 @@ const DEFAULT_SETTINGS: PostProcessingSettings = {
     saturation: 1.0,
     contrast: 1.0,
   },
-  vignette: {
+  dotScreen: {
     enabled: false,
-    darkness: 1.0,
-    offset: 1.0,
+    size: 3,
+    intensity: 1.0,
+    spacing: 140.0,
   },
 };
 

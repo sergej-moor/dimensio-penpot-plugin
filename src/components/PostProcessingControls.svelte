@@ -5,24 +5,9 @@
   } from '../stores/postprocessing';
   import { tooltip } from '../actions/tooltip';
 
-  function handleBloomToggle(enabled: boolean) {
-    updatePostProcessingSettings({
-      bloom: { ...$postProcessingStore.settings.bloom, enabled },
-    });
-  }
-
   function handleNoiseToggle(enabled: boolean) {
     updatePostProcessingSettings({
       noise: { ...$postProcessingStore.settings.noise, enabled },
-    });
-  }
-
-  function handleBloomSettingChange(
-    setting: keyof typeof $postProcessingStore.settings.bloom,
-    value: number
-  ) {
-    updatePostProcessingSettings({
-      bloom: { ...$postProcessingStore.settings.bloom, [setting]: value },
     });
   }
 
@@ -94,37 +79,109 @@
       },
     });
   }
+
+  function handleDotScreenToggle(enabled: boolean) {
+    updatePostProcessingSettings({
+      dotScreen: { ...$postProcessingStore.settings.dotScreen, enabled },
+    });
+  }
+
+  function handleDotScreenSettingChange(
+    setting: keyof typeof $postProcessingStore.settings.dotScreen,
+    value: number
+  ) {
+    updatePostProcessingSettings({
+      dotScreen: {
+        ...$postProcessingStore.settings.dotScreen,
+        [setting]: value,
+      },
+    });
+  }
 </script>
 
 <div class="flex flex-col gap-4">
   <div class="flex flex-col gap-2">
     <div class="flex items-center justify-between">
-      <h3 class="text-sm font-medium">Bloom Effect</h3>
+      <h3 class="text-sm font-medium">Pixelation</h3>
       <label class="relative inline-flex items-center cursor-pointer">
         <input
           type="checkbox"
           class="sr-only peer"
-          checked={$postProcessingStore.settings.bloom.enabled}
-          on:change={(e) => handleBloomToggle(e.currentTarget.checked)}
+          checked={$postProcessingStore.settings.pixelation.enabled}
+          on:change={(e) => handlePixelationToggle(e.currentTarget.checked)}
         />
         <div
           class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-        ></div>
+        />
       </label>
     </div>
 
-    {#if $postProcessingStore.settings.bloom.enabled}
+    {#if $postProcessingStore.settings.pixelation.enabled}
       <div class="flex flex-col gap-2 pl-4">
         <label class="text-sm flex justify-between">
-          Intensity: {$postProcessingStore.settings.bloom.intensity.toFixed(2)}
+          Pixel Size: {$postProcessingStore.settings.pixelation.pixelSize}
+          <input
+            type="range"
+            min="2"
+            max="32"
+            step="1"
+            value={$postProcessingStore.settings.pixelation.pixelSize}
+            on:input={(e) =>
+              handlePixelationSettingChange(parseInt(e.currentTarget.value))}
+            class="flex-1 ml-2"
+          />
+        </label>
+      </div>
+    {/if}
+  </div>
+
+  <div class="flex flex-col gap-2">
+    <div class="flex items-center justify-between">
+      <h3 class="text-sm font-medium">Dot Screen</h3>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input
+          type="checkbox"
+          class="sr-only peer"
+          checked={$postProcessingStore.settings.dotScreen.enabled}
+          on:change={(e) => handleDotScreenToggle(e.currentTarget.checked)}
+        />
+        <div
+          class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
+        />
+      </label>
+    </div>
+
+    {#if $postProcessingStore.settings.dotScreen.enabled}
+      <div class="flex flex-col gap-2 pl-4">
+        <label class="text-sm flex justify-between">
+          Size: {$postProcessingStore.settings.dotScreen.size.toFixed(1)}
+          <input
+            type="range"
+            min="1"
+            max="10"
+            step="0.5"
+            value={$postProcessingStore.settings.dotScreen.size}
+            on:input={(e) =>
+              handleDotScreenSettingChange(
+                'size',
+                parseFloat(e.currentTarget.value)
+              )}
+            class="flex-1 ml-2"
+          />
+        </label>
+
+        <label class="text-sm flex justify-between">
+          Intensity: {$postProcessingStore.settings.dotScreen.intensity.toFixed(
+            2
+          )}
           <input
             type="range"
             min="0"
-            max="3"
+            max="2"
             step="0.1"
-            value={$postProcessingStore.settings.bloom.intensity}
+            value={$postProcessingStore.settings.dotScreen.intensity}
             on:input={(e) =>
-              handleBloomSettingChange(
+              handleDotScreenSettingChange(
                 'intensity',
                 parseFloat(e.currentTarget.value)
               )}
@@ -133,33 +190,16 @@
         </label>
 
         <label class="text-sm flex justify-between">
-          Threshold: {$postProcessingStore.settings.bloom.threshold.toFixed(2)}
+          Spacing: {$postProcessingStore.settings.dotScreen.spacing.toFixed(1)}
           <input
             type="range"
-            min="0"
-            max="1"
-            step="0.1"
-            value={$postProcessingStore.settings.bloom.threshold}
+            min="2"
+            max="20"
+            step="0.5"
+            value={$postProcessingStore.settings.dotScreen.spacing}
             on:input={(e) =>
-              handleBloomSettingChange(
-                'threshold',
-                parseFloat(e.currentTarget.value)
-              )}
-            class="flex-1 ml-2"
-          />
-        </label>
-
-        <label class="text-sm flex justify-between">
-          Radius: {$postProcessingStore.settings.bloom.radius.toFixed(2)}
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.1"
-            value={$postProcessingStore.settings.bloom.radius}
-            on:input={(e) =>
-              handleBloomSettingChange(
-                'radius',
+              handleDotScreenSettingChange(
+                'spacing',
                 parseFloat(e.currentTarget.value)
               )}
             class="flex-1 ml-2"
@@ -192,7 +232,7 @@
           <input
             type="range"
             min="0"
-            max="1"
+            max="5"
             step="0.1"
             value={$postProcessingStore.settings.noise.intensity}
             on:input={(e) =>
@@ -331,96 +371,6 @@
                 'contrast',
                 parseFloat(e.currentTarget.value)
               )}
-            class="flex-1 ml-2"
-          />
-        </label>
-      </div>
-    {/if}
-  </div>
-
-  <div class="flex flex-col gap-2">
-    <div class="flex items-center justify-between">
-      <h3 class="text-sm font-medium">Vignette</h3>
-      <label class="relative inline-flex items-center cursor-pointer">
-        <input
-          type="checkbox"
-          class="sr-only peer"
-          checked={$postProcessingStore.settings.vignette.enabled}
-          on:change={(e) => handleVignetteToggle(e.currentTarget.checked)}
-        />
-        <div
-          class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-        />
-      </label>
-    </div>
-
-    {#if $postProcessingStore.settings.vignette.enabled}
-      <div class="flex flex-col gap-2 pl-4">
-        <label class="text-sm flex justify-between">
-          Darkness: {$postProcessingStore.settings.vignette.darkness.toFixed(2)}
-          <input
-            type="range"
-            min="0"
-            max="2"
-            step="0.1"
-            value={$postProcessingStore.settings.vignette.darkness}
-            on:input={(e) =>
-              handleVignetteSettingChange(
-                'darkness',
-                parseFloat(e.currentTarget.value)
-              )}
-            class="flex-1 ml-2"
-          />
-        </label>
-
-        <label class="text-sm flex justify-between">
-          Offset: {$postProcessingStore.settings.vignette.offset.toFixed(2)}
-          <input
-            type="range"
-            min="0"
-            max="2"
-            step="0.1"
-            value={$postProcessingStore.settings.vignette.offset}
-            on:input={(e) =>
-              handleVignetteSettingChange(
-                'offset',
-                parseFloat(e.currentTarget.value)
-              )}
-            class="flex-1 ml-2"
-          />
-        </label>
-      </div>
-    {/if}
-  </div>
-
-  <div class="flex flex-col gap-2">
-    <div class="flex items-center justify-between">
-      <h3 class="text-sm font-medium">Pixelation</h3>
-      <label class="relative inline-flex items-center cursor-pointer">
-        <input
-          type="checkbox"
-          class="sr-only peer"
-          checked={$postProcessingStore.settings.pixelation.enabled}
-          on:change={(e) => handlePixelationToggle(e.currentTarget.checked)}
-        />
-        <div
-          class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
-        />
-      </label>
-    </div>
-
-    {#if $postProcessingStore.settings.pixelation.enabled}
-      <div class="flex flex-col gap-2 pl-4">
-        <label class="text-sm flex justify-between">
-          Pixel Size: {$postProcessingStore.settings.pixelation.pixelSize}
-          <input
-            type="range"
-            min="2"
-            max="32"
-            step="1"
-            value={$postProcessingStore.settings.pixelation.pixelSize}
-            on:input={(e) =>
-              handlePixelationSettingChange(parseInt(e.currentTarget.value))}
             class="flex-1 ml-2"
           />
         </label>

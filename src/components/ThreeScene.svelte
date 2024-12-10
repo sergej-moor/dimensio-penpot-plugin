@@ -47,13 +47,12 @@
   let currentMesh: THREE.Mesh | null = null;
   let currentMaterial: THREE.MeshStandardMaterial;
   let composer: EffectComposer;
-  let bloomPass: UnrealBloomPass;
   let noisePass: ShaderPass;
   let edgePass: ShaderPass;
   let colorPass: ShaderPass;
-  let vignettePass: ShaderPass;
   let pixelationPass: ShaderPass;
   let previousSVGContent: string | null = null;
+  let dotScreenPass: ShaderPass;
 
   // Update noise shader
   const noiseShader = {
@@ -174,35 +173,6 @@
     `,
   };
 
-  const vignetteShader = {
-    uniforms: {
-      tDiffuse: { value: null },
-      darkness: { value: 1.0 },
-      offset: { value: 1.0 },
-    },
-    vertexShader: `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform sampler2D tDiffuse;
-      uniform float darkness;
-      uniform float offset;
-      varying vec2 vUv;
-      
-      void main() {
-        vec4 color = texture2D(tDiffuse, vUv);
-        vec2 center = vec2(0.5);
-        float dist = distance(vUv, center) * offset;
-        color.rgb *= smoothstep(1.0, darkness, dist);
-        gl_FragColor = color;
-      }
-    `,
-  };
-
   // Add new shader definitions
   const pixelationShader = {
     uniforms: {
@@ -229,6 +199,55 @@
         vec2 dxy = pixelSize / resolution;
         vec2 coord = dxy * floor(vUv / dxy);
         gl_FragColor = texture2D(tDiffuse, coord);
+      }
+    `,
+  };
+
+  const dotScreenShader = {
+    uniforms: {
+      tDiffuse: { value: null },
+      size: { value: 3.0 },
+      intensity: { value: 1.0 },
+      spacing: { value: 140.0 },
+      resolution: {
+        value: new THREE.Vector2(window.innerWidth, window.innerHeight),
+      },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform float size;
+      uniform float intensity;
+      uniform float spacing;
+      uniform vec2 resolution;
+      varying vec2 vUv;
+      
+      void main() {
+        vec4 color = texture2D(tDiffuse, vUv);
+        
+        if (color.a == 0.0) {
+          gl_FragColor = color;
+          return;
+        }
+        
+        // Create rotated grid pattern
+        vec2 coord = gl_FragCoord.xy / resolution.y * spacing;
+        coord = mat2(0.707, -0.707, 0.707, 0.707) * coord;
+        vec2 grid = fract(coord);
+        
+        float dotSize = size * 0.5;
+        float pattern = 1.0 - smoothstep(0.0, dotSize, length(grid - 0.5));
+        
+        // Create halftone effect
+        float brightness = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+        float dotIntensity = pattern * intensity * (1.0 - brightness);
+        gl_FragColor = vec4(mix(color.rgb, vec3(1.0), dotIntensity), color.a);
       }
     `,
   };
@@ -594,8 +613,14 @@
       {
         alpha: true,
         format: THREE.RGBAFormat,
+        stencilBuffer: false,
+        depthBuffer: true,
+        type: THREE.HalfFloatType,
       }
     );
+
+    // Create emissive render target
+    const emissiveRenderTarget = renderTarget.clone();
 
     composer = new EffectComposer(renderer, renderTarget);
 
@@ -605,38 +630,39 @@
     renderPass.clearAlpha = 0;
     composer.addPass(renderPass);
 
-    // Add bloom pass
-    bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
-      1.5,
-      0.4,
-      0.85
-    );
-    bloomPass.renderToScreen = false;
-    composer.addPass(bloomPass);
+    // Add emissive pass
+    const emissivePass = new RenderPass(scene, camera);
+    emissivePass.clear = true;
+    emissivePass.overrideMaterial = new THREE.MeshBasicMaterial({
+      blending: THREE.AdditiveBlending,
+      color: 0xffffff,
+    });
+    composer.addPass(emissivePass);
+
+    // Add pixelation pass first
+    pixelationPass = new ShaderPass(pixelationShader);
+    pixelationPass.renderToScreen = false;
+    composer.addPass(pixelationPass);
+
+    // Add dot screen pass after pixelation but before noise
+    dotScreenPass = new ShaderPass(dotScreenShader);
+    dotScreenPass.renderToScreen = false;
+    composer.addPass(dotScreenPass);
 
     // Add noise pass
     noisePass = new ShaderPass(noiseShader);
     noisePass.renderToScreen = false;
     composer.addPass(noisePass);
 
-    // Add pixelation pass before other effects
-    pixelationPass = new ShaderPass(pixelationShader);
-    pixelationPass.renderToScreen = false;
-    composer.addPass(pixelationPass);
-
-    // Add new passes
+    // Add edge pass
     edgePass = new ShaderPass(edgeShader);
     edgePass.renderToScreen = false;
     composer.addPass(edgePass);
 
+    // Add color pass last (before output)
     colorPass = new ShaderPass(colorAdjustmentShader);
     colorPass.renderToScreen = false;
     composer.addPass(colorPass);
-
-    vignettePass = new ShaderPass(vignetteShader);
-    vignettePass.renderToScreen = false;
-    composer.addPass(vignettePass);
 
     // Output pass should still be last
     const outputPass = new OutputPass();
@@ -645,25 +671,17 @@
   }
 
   function updatePostProcessingEffects(settings: PostProcessingSettings) {
-    if (
-      !bloomPass ||
-      !noisePass ||
-      !edgePass ||
-      !colorPass ||
-      !vignettePass ||
-      !pixelationPass
-    )
-      return;
+    if (!noisePass || !edgePass || !colorPass || !pixelationPass) return;
 
     // Update pixelation
     pixelationPass.enabled = settings.pixelation.enabled;
     pixelationPass.uniforms.pixelSize.value = settings.pixelation.pixelSize;
 
-    // Update bloom
-    bloomPass.enabled = settings.bloom.enabled;
-    bloomPass.strength = settings.bloom.intensity;
-    bloomPass.threshold = settings.bloom.threshold;
-    bloomPass.radius = settings.bloom.radius;
+    // Update dot screen
+    dotScreenPass.enabled = settings.dotScreen.enabled;
+    dotScreenPass.uniforms.size.value = settings.dotScreen.size;
+    dotScreenPass.uniforms.intensity.value = settings.dotScreen.intensity;
+    dotScreenPass.uniforms.spacing.value = settings.dotScreen.spacing;
 
     // Update noise
     noisePass.enabled = settings.noise.enabled;
@@ -679,11 +697,6 @@
     colorPass.uniforms.brightness.value = settings.color.brightness;
     colorPass.uniforms.saturation.value = settings.color.saturation;
     colorPass.uniforms.contrast.value = settings.color.contrast;
-
-    // Update vignette
-    vignettePass.enabled = settings.vignette.enabled;
-    vignettePass.uniforms.darkness.value = settings.vignette.darkness;
-    vignettePass.uniforms.offset.value = settings.vignette.offset;
   }
 
   export function updateMeshMaterial(
