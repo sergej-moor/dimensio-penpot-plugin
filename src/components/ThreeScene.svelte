@@ -187,6 +187,7 @@
 
       // Create a group to hold all shape meshes
       const group = new THREE.Group();
+      const meshes: THREE.Mesh[] = [];
 
       // Create meshes by color group
       Object.entries(colorGroups).forEach(([color, groupData]) => {
@@ -202,10 +203,44 @@
               metalness: 0.3,
             });
             const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.z =
+              meshes.length * 0.05 * $objectStore.settings.depth;
+            meshes.push(mesh);
             group.add(mesh);
           });
         });
       });
+
+      // Create color groups for shape controls
+      const colorMap = new Map<
+        string,
+        { color: THREE.Color; indices: number[] }
+      >();
+      meshes.forEach((mesh, index) => {
+        const material = mesh.material as THREE.MeshStandardMaterial;
+        const colorHex = material.color.getHexString();
+
+        if (!colorMap.has(colorHex)) {
+          colorMap.set(colorHex, {
+            color: material.color.clone(),
+            indices: [index],
+          });
+        } else {
+          colorMap.get(colorHex)?.indices.push(index);
+        }
+      });
+
+      const groups = Array.from(colorMap.entries()).map(
+        ([hex, data], index) => ({
+          id: hex,
+          color: data.color.clone(),
+          defaultColor: data.color.clone(),
+          meshIndices: data.indices,
+          depth: 1 + index * 0.05,
+        })
+      );
+
+      setShapeGroups(groups);
 
       // Update scale based on object settings
       const targetWidth = 10; // Target width in units
@@ -704,8 +739,8 @@
         const mesh = (currentMesh as THREE.Group).children[index] as THREE.Mesh;
         if (mesh && mesh.material instanceof THREE.MeshStandardMaterial) {
           mesh.material.color.copy(group.color);
-          // Update the mesh's scale in Z axis for depth
-          mesh.scale.z = group.depth;
+          // Update the mesh's position in Z axis for extrusion effect
+          mesh.position.z = (group.depth - 1) * $objectStore.settings.depth;
         }
       });
     });

@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as THREE from 'three';
+  import { tooltip } from '../actions/tooltip';
   import {
     shapeStore,
     updateGroupColor,
@@ -44,13 +45,19 @@
           Reset Color
         </button>
       </div>
-      <div class="flex items-center gap-2">
-        <label class="text-sm">Depth:</label>
+      <div
+        class="flex items-center gap-2"
+        use:tooltip={{
+          text: 'Elevate the shape groups position for more depth',
+          position: 'left',
+        }}
+      >
+        <label class="text-sm">Elevation</label>
         <input
           type="range"
           min="0.1"
-          max="5"
-          step="0.1"
+          max="2"
+          step="0.05"
           value={group.depth}
           on:input={(e) => handleDepthChange(group.id, e)}
           class="flex-grow"
