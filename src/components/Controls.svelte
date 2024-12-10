@@ -281,6 +281,41 @@
           Import selected SVG from Penpot
         </button>
       </div>
+
+      <!-- Help Accordion -->
+      <div class="flex flex-col gap-2 mt-8">
+        <details class="group">
+          <summary
+            class="flex items-center justify-between cursor-pointer text-sm font-medium"
+          >
+            <span>Help</span>
+            <span
+              class="transform transition duration-300 group-open:rotate-180"
+            >
+              ▼
+            </span>
+          </summary>
+          <div class="mt-3 text-xs text-gray-600 dark:text-gray-400">
+            <p>
+              To ensure your shape works correctly in the Dimensio, follow these
+              steps:
+            </p>
+            <ol class="list-decimal pl-5 space-y-2">
+              <li>Use SVG files with an alpha background</li>
+              <li>
+                If issues arise when importing, adjust the SVG in a vector
+                editor:
+                <ul class="list-disc pl-5 mt-2 space-y-2">
+                  <li>Reverse the path direction if holes don't appear.</li>
+                  <li>
+                    Remove any leftover background if a box appears instead.
+                  </li>
+                </ul>
+              </li>
+            </ol>
+          </div>
+        </details>
+      </div>
     {:else if activeTab === 'exports'}
       <div class="flex flex-col gap-2">
         <h3 class="text-sm font-medium">Export Resolution</h3>

@@ -18,7 +18,7 @@
     <!-- Wrap Preview with its own error boundary -->
 
     <ErrorBoundary
-      fallback="Unable to load preview. Please try selecting a different image."
+      fallback="Unable to load preview. Please try to reload the plugin"
       onError={handlePreviewError}
     >
       <Preview />
@@ -33,7 +33,7 @@
       </h2>
 
       <ErrorBoundary
-        fallback="Controls are temporarily unavailable. Please refresh the page."
+        fallback="An error occured in the controls. Please try to reload the plugin"
       >
         <Controls />
       </ErrorBoundary>
