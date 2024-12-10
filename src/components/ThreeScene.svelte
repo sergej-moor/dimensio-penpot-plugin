@@ -16,6 +16,7 @@
     type Material,
     updateMaterialSettings,
     type MaterialSettings,
+    setCurrentMaterial,
   } from '../stores/materials';
   import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
   import { objectStore } from '../stores/object';
@@ -202,20 +203,6 @@
     `,
   };
 
-  function createDefaultCube() {
-    const geometry = new THREE.BoxGeometry();
-    const material = new THREE.MeshStandardMaterial({
-      color: 0x00ff00,
-      flatShading: true,
-      roughness: 0.7,
-      metalness: 0.3,
-    });
-    const cube = new THREE.Mesh(geometry, material);
-    scene.add(cube);
-    currentMesh = cube;
-    return cube;
-  }
-
   function createColorGroups(meshes: THREE.Mesh[]): void {
     const colorMap = new Map<
       string,
@@ -248,28 +235,19 @@
   }
 
   function createSVGMesh(svgContent: string, preserveCamera = false) {
-    // Remove existing mesh if any
-    if (currentMesh) {
-      console.log('Removing existing mesh');
-      scene.remove(currentMesh);
-      if ('geometry' in currentMesh) {
-        currentMesh.geometry.dispose();
-      }
-      if ('material' in currentMesh) {
-        (Array.isArray(currentMesh.material)
-          ? currentMesh.material
-          : [currentMesh.material]
-        ).forEach((material) => material.dispose());
-      }
-    }
-
     try {
       const { shapes, bounds, colorGroups } = parseSVGPaths(svgContent);
       console.log('Parsed SVG:', { shapes, bounds });
 
       if (shapes.length === 0) {
         console.warn('No valid paths found in SVG');
-        return createDefaultCube();
+        return null;
+      }
+
+      // Get default material if available
+      const defaultMaterial = $materialStore.materials[0];
+      if (defaultMaterial) {
+        setCurrentMaterial(defaultMaterial);
       }
 
       // Create extruded geometry from shapes
@@ -290,13 +268,59 @@
           const shapes = path.toShapes(true);
           shapes.forEach((shape) => {
             const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-            const material = new THREE.MeshStandardMaterial({
-              color: new THREE.Color(groupData.color),
-              flatShading: true,
-              side: THREE.DoubleSide,
-              roughness: 0.7,
-              metalness: 0.3,
-            });
+            // Create material with default textures if available
+            const material = defaultMaterial
+              ? new THREE.MeshStandardMaterial({
+                  color: new THREE.Color(groupData.color),
+                  flatShading: true,
+                  side: THREE.DoubleSide,
+                  roughness: $materialStore.settings.roughness,
+                  metalness: $materialStore.settings.metalness,
+                  envMapIntensity: $materialStore.settings.envMapIntensity,
+                })
+              : new THREE.MeshStandardMaterial({
+                  color: new THREE.Color(groupData.color),
+                  flatShading: true,
+                  side: THREE.DoubleSide,
+                  roughness: 0.7,
+                  metalness: 0.3,
+                });
+
+            // Apply textures if default material exists
+            if (defaultMaterial) {
+              const textureLoader = new THREE.TextureLoader();
+              Object.entries(defaultMaterial.maps).forEach(([type, path]) => {
+                if (path) {
+                  const texture = textureLoader.load(path);
+                  texture.wrapS = THREE.RepeatWrapping;
+                  texture.wrapT = THREE.RepeatWrapping;
+                  texture.repeat.set(
+                    $materialStore.settings.textureRepeat,
+                    $materialStore.settings.textureRepeat
+                  );
+
+                  switch (type) {
+                    case 'diffuse':
+                      texture.colorSpace = THREE.SRGBColorSpace;
+                      material.map = texture;
+                      break;
+                    case 'normal':
+                      texture.colorSpace = THREE.LinearSRGBColorSpace;
+                      material.normalMap = texture;
+                      break;
+                    case 'roughness':
+                      material.roughnessMap = texture;
+                      break;
+                    case 'metalness':
+                      material.metalnessMap = texture;
+                      break;
+                    case 'ao':
+                      material.aoMap = texture;
+                      break;
+                  }
+                }
+              });
+            }
 
             const mesh = new THREE.Mesh(geometry, material);
             mesh.position.z =
@@ -382,7 +406,7 @@
       return group;
     } catch (error) {
       console.error('Error creating SVG mesh:', error);
-      return createDefaultCube();
+      return null;
     }
   }
 
@@ -737,10 +761,6 @@
     renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
     console.log('Renderer created and appended');
-
-    // Initial cube
-    const cube = createDefaultCube();
-    console.log('Default cube created');
 
     // Add lights
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
