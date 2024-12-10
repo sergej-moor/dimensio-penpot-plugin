@@ -237,7 +237,6 @@
   function createSVGMesh(svgContent: string, preserveCamera = false) {
     try {
       const { shapes, bounds, colorGroups } = parseSVGPaths(svgContent);
-      console.log('Parsed SVG:', { shapes, bounds });
 
       if (shapes.length === 0) {
         console.warn('No valid paths found in SVG');
@@ -405,7 +404,6 @@
 
       scene.add(group);
       currentMesh = group as unknown as THREE.Mesh;
-      console.log('Added SVG mesh to scene:', group);
 
       return group;
     } catch (error) {
@@ -420,7 +418,6 @@
   ): Promise<Uint8Array> {
     return new Promise((resolve, reject) => {
       try {
-        console.log('Starting scene capture with options:', options);
         // Create offscreen renderer with enhanced settings
         const offscreenRenderer = new THREE.WebGLRenderer({
           antialias: true,
@@ -447,8 +444,6 @@
         // Render high-res version
         offscreenRenderer.render(offscreenScene, offscreenCamera);
 
-        console.log('Scene rendered, converting to PNG');
-
         // Get the canvas and convert to PNG
         const canvas = document.createElement('canvas');
         canvas.width = renderWidth;
@@ -464,21 +459,12 @@
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, 0, 0);
 
-          console.log('Image drawn to canvas, dimensions:', {
-            width: canvas.width,
-            height: canvas.height,
-            imgWidth: img.width,
-            imgHeight: img.height,
-          });
-
           // Convert to blob
           canvas.toBlob((blob) => {
             if (!blob) {
               reject(new Error('Failed to create PNG blob'));
               return;
             }
-
-            console.log('Created blob:', { size: blob.size });
 
             // Convert blob to Uint8Array
             const reader = new FileReader();
@@ -488,9 +474,7 @@
                 return;
               }
               const arrayBuffer = reader.result as ArrayBuffer;
-              console.log('Converted to array buffer:', {
-                byteLength: arrayBuffer.byteLength,
-              });
+
               resolve(new Uint8Array(arrayBuffer));
             };
             reader.readAsArrayBuffer(blob);
@@ -737,21 +721,16 @@
     // Load materials first
     await loadMaterials();
 
-    console.log('ThreeScene mounting, container:', container);
     // Scene setup
     scene = new THREE.Scene();
     scene.background = null;
-    console.log('Scene created');
+
     camera = new THREE.PerspectiveCamera(
       75,
       container.clientWidth / container.clientHeight,
       0.1,
       1000
     );
-    console.log('Camera created with dimensions:', {
-      width: container.clientWidth,
-      height: container.clientHeight,
-    });
 
     renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -764,7 +743,6 @@
     renderer.toneMappingExposure = 1;
     renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
-    console.log('Renderer created and appended');
 
     // Add lights
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -860,7 +838,7 @@
     $svgStore.content !== previousSVGContent
   ) {
     previousSVGContent = $svgStore.content;
-    console.log('Creating SVG mesh from content:', $svgStore.content);
+    s;
     createSVGMesh($svgStore.content, false);
 
     // Force material update after creation

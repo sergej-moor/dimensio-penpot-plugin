@@ -196,12 +196,9 @@
     }
   }
 
-  $: console.log('ThreeScene store state:', $threeSceneStore);
-
   async function handleExportToPenpot(
     options: { width?: number; height?: number } = { width: 2000, height: 2000 }
   ): Promise<void> {
-    console.log('Export clicked with options:', options);
     if (isExporting || !$threeSceneStore.component) return;
 
     try {
@@ -220,7 +217,6 @@
         },
         '*'
       );
-      console.log('Posted message to parent window');
     } catch (error) {
       console.error('Error exporting scene:', error, error.stack);
       setError('Failed to capture 3D scene');
