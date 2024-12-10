@@ -213,13 +213,6 @@
         value: new THREE.Vector2(window.innerWidth, window.innerHeight),
       },
     },
-    vertexShader: `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
     fragmentShader: `
       uniform sampler2D tDiffuse;
       uniform float size;
@@ -246,8 +239,9 @@
         
         // Create halftone effect
         float brightness = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-        float dotIntensity = pattern * intensity * (1.0 - brightness);
-        gl_FragColor = vec4(mix(color.rgb, vec3(1.0), dotIntensity), color.a);
+        // Enhance original colors with dot pattern
+        vec3 enhancedColor = color.rgb * (1.0 + pattern * intensity * (1.0 - brightness));
+        gl_FragColor = vec4(enhancedColor, color.a);
       }
     `,
   };
@@ -347,15 +341,25 @@
               roughness: 0.7,
               metalness: 0.3,
             });
+
             const mesh = new THREE.Mesh(geometry, material);
             mesh.position.z =
               meshes.length * 0.05 * $objectStore.settings.depth;
-            mesh.layers.enable(0); // Visible in base layer
-            mesh.layers.enable(1); // Visible in bloom layer
+            mesh.visible = true;
+            mesh.frustumCulled = false;
+            mesh.renderOrder = meshes.length;
             meshes.push(mesh);
             group.add(mesh);
           });
         });
+      });
+
+      // Update all materials after creation
+      group.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          const mat = child.material as THREE.MeshStandardMaterial;
+          mat.needsUpdate = true;
+        }
       });
 
       // Create color groups for shape controls
@@ -613,14 +617,8 @@
       {
         alpha: true,
         format: THREE.RGBAFormat,
-        stencilBuffer: false,
-        depthBuffer: true,
-        type: THREE.HalfFloatType,
       }
     );
-
-    // Create emissive render target
-    const emissiveRenderTarget = renderTarget.clone();
 
     composer = new EffectComposer(renderer, renderTarget);
 
@@ -629,15 +627,6 @@
     renderPass.clear = true;
     renderPass.clearAlpha = 0;
     composer.addPass(renderPass);
-
-    // Add emissive pass
-    const emissivePass = new RenderPass(scene, camera);
-    emissivePass.clear = true;
-    emissivePass.overrideMaterial = new THREE.MeshBasicMaterial({
-      blending: THREE.AdditiveBlending,
-      color: 0xffffff,
-    });
-    composer.addPass(emissivePass);
 
     // Add pixelation pass first
     pixelationPass = new ShaderPass(pixelationShader);
@@ -813,7 +802,6 @@
 
       controls.update();
 
-      // Use composer instead of renderer
       if (composer) {
         composer.render();
       } else {
