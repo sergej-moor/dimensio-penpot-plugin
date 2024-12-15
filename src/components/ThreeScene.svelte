@@ -794,6 +794,8 @@
 
     // Handle resize
     const handleResize = () => {
+      if (!container) return;
+
       const width = container.clientWidth * window.devicePixelRatio;
       const height = container.clientHeight * window.devicePixelRatio;
 
