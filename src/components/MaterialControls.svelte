@@ -189,9 +189,9 @@
   <h3 class="mt-2 font-medium">Materials</h3>
 
   {#if $materialStore.isLoading}
-    <div class="flex justify-center">
+    <!-- <div class="flex justify-center">
       <LoadingSpinner />
-    </div>
+    </div> -->
   {:else if $materialStore.error}
     <p class="text-sm text-red-600">{$materialStore.error}</p>
   {:else}
@@ -230,10 +230,10 @@
       {/each}
     </div>
 
-    {#if isLoading}
+    <!--    {#if isLoading}
       <div class="flex justify-center">
         <LoadingSpinner />
       </div>
-    {/if}
+    {/if} -->
   {/if}
 </div>
